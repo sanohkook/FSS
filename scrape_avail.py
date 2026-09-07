@@ -175,16 +175,45 @@ def main():
         sys.exit(1)
 
     now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    body = (
-        "// 자동 생성 — scrape_avail.py. 직접 수정하지 마세요.\n"
-        "window.AVAIL = %s;\n"
-        "window.AVAIL_UPDATED = %s;\n"
-        "if (window.__renderAvail) window.__renderAvail();\n"
-        % (json.dumps(result, ensure_ascii=False, separators=(",", ":")), json.dumps(now))
-    )
+    avail_json = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
+
+    # 1) avail.js (참고용 / 재사용)
     with open("avail.js", "w", encoding="utf-8") as f:
-        f.write(body)
-    print("avail.js 갱신: %d건, %s" % (total, now), file=sys.stderr)
+        f.write(
+            "// 자동 생성 — scrape_avail.py. 직접 수정하지 마세요.\n"
+            "window.AVAIL = %s;\nwindow.AVAIL_UPDATED = %s;\n"
+            "if (window.__renderAvail) window.__renderAvail();\n"
+            % (avail_json, json.dumps(now))
+        )
+
+    # 2) 아티팩트 HTML 의 AVAIL 블록 교체
+    html_path = "인천물때예약판.html"
+    try:
+        with open(html_path, encoding="utf-8") as f:
+            html = f.read()
+        block = (
+            "<!-- AVAIL:START (scrape_avail.py 가 이 블록을 자동 갱신) -->\n"
+            '<script>window.AVAIL=%s;window.AVAIL_UPDATED=%s;'
+            'if(window.__renderAvail)window.__renderAvail();</script>\n'
+            "<!-- AVAIL:END -->"
+        ) % (avail_json, json.dumps(now))
+        new_html = re.sub(
+            r"<!-- AVAIL:START.*?<!-- AVAIL:END -->",
+            lambda _m: block,
+            html,
+            count=1,
+            flags=re.S,
+        )
+        if new_html != html:
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(new_html)
+            print("%s AVAIL 블록 갱신" % html_path, file=sys.stderr)
+        else:
+            print("%s 변경 없음" % html_path, file=sys.stderr)
+    except FileNotFoundError:
+        print("WARN %s 없음 — HTML 갱신 건너뜀" % html_path, file=sys.stderr)
+
+    print("완료: %d건, %s" % (total, now), file=sys.stderr)
 
 
 if __name__ == "__main__":
