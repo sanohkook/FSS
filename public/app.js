@@ -65,12 +65,25 @@
   };
 
   // ---------- load / render ----------
+  var savedMonth = null;
+  try {
+    var sm = localStorage.getItem("ijb.month");
+    var now = new Date();
+    var cur = now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2);
+    if (sm && /^\d{4}-\d{2}$/.test(sm) && sm >= cur && sm <= shiftMonth(cur, 2)) savedMonth = sm;
+  } catch (e) {}
+
   function load(month) {
-    return api("GET", "/api/board?month=" + encodeURIComponent(month || "")).then(function (b) {
+    if (month) { try { localStorage.setItem("ijb.month", month); } catch (e) {} }
+    return api("GET", "/api/board?month=" + encodeURIComponent(month || savedMonth || "")).then(function (b) {
       state.board = b;
       state.month = b.month;
       if (!state.months.length) {
         state.months = [b.today.slice(0, 7), shiftMonth(b.today.slice(0, 7), 1), shiftMonth(b.today.slice(0, 7), 2)];
+      }
+      // 저장된 달이 유효 범위를 벗어나면 정리
+      if (state.months.indexOf(state.month) < 0) {
+        try { localStorage.removeItem("ijb.month"); } catch (e) {}
       }
       render();
     });
@@ -175,7 +188,7 @@
     var boats = visibleBoats();
     el.cols.innerHTML =
       '<col class="c-w-date"><col class="c-w-mul"><col class="c-w-flow">' +
-      boats.map(function () { return "<col>"; }).join("");
+      boats.map(function () { return '<col class="c-w-boat">'; }).join("");
 
     el.head.innerHTML =
       '<tr><th class="c-date">날짜</th><th class="c-mul">물때</th><th class="c-flow">조류</th>' +
@@ -260,12 +273,15 @@
       if (!hr) return;
       var d = hr.children[0].getBoundingClientRect().width;
       var m = hr.children[1].getBoundingClientRect().width;
-      el.head.closest("table").style.setProperty("--sticky-mul", d + "px");
-      el.head.closest("table").style.setProperty("--sticky-flow", (d + m) + "px");
+      var tbl = el.head.closest("table");
+      tbl.style.setProperty("--sticky-mul", d + "px");
+      tbl.style.setProperty("--sticky-flow", (d + m) + "px");
+      tbl.style.width = 60 + 76 + 62 + boats.length * 112 + "px";
       // 배가 늘었으면(사이트 추가 등) 새 열이 보이도록 오른쪽 끝으로
       var sc = document.querySelector(".scroller");
       if (sc && state._boatN != null && boats.length > state._boatN) sc.scrollLeft = sc.scrollWidth;
       state._boatN = boats.length;
+      updateHScroll();
     });
 
     var when = b.updatedAt ? new Date(b.updatedAt).toLocaleString("ko-KR") : "없음";
@@ -292,6 +308,40 @@
 
   el.prevM.onclick = function () { load(shiftMonth(state.month, -1)); };
   el.nextM.onclick = function () { load(shiftMonth(state.month, 1)); };
+
+  // ---------- 표 좌우 스크롤 ----------
+  var hbar = document.getElementById("hscroll");
+  var hHint = document.getElementById("hscrollHint");
+  function scroller() { return document.querySelector(".scroller"); }
+  function step() {
+    var th = el.head.querySelector("th.boat-h");
+    return (th ? th.getBoundingClientRect().width : 110) * 3;
+  }
+  function updateHScroll() {
+    var sc = scroller();
+    if (!sc) return;
+    var can = sc.scrollWidth - sc.clientWidth > 4;
+    hbar.hidden = !can;
+    if (!can) return;
+    var atStart = sc.scrollLeft < 4;
+    var atEnd = sc.scrollLeft > sc.scrollWidth - sc.clientWidth - 4;
+    document.getElementById("hLeft").disabled = atStart;
+    document.getElementById("hRight").disabled = atEnd;
+    var total = (state.board.boats || []).length;
+    var vis = visibleBoats().length;
+    hHint.textContent = "배 " + vis + "칸 · 좌우로 스크롤하세요";
+  }
+  document.getElementById("hLeft").onclick = function () {
+    scroller().scrollBy({ left: -step(), behavior: "smooth" });
+  };
+  document.getElementById("hRight").onclick = function () {
+    scroller().scrollBy({ left: step(), behavior: "smooth" });
+  };
+  (function () {
+    var sc = scroller();
+    if (sc) sc.addEventListener("scroll", updateHScroll, { passive: true });
+  })();
+  window.addEventListener("resize", updateHScroll);
 
   // ---------- refresh ----------
   document.getElementById("refreshBtn").onclick = function () {
