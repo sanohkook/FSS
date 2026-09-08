@@ -216,7 +216,6 @@ td.c-boat { padding: 5px 6px; border-left: 1px solid var(--line-2); }
 .cell.s-full .st { color: var(--full); }
 .cell.s-unknown .st { color: var(--ink-3); font-weight: 500; }
 .cell.has-seat { border-color: color-mix(in srgb, var(--open) 45%, var(--line)); background: var(--open-bg); }
-.cell.s-few.has-seat { border-color: color-mix(in srgb, var(--few) 45%, var(--line)); background: var(--few-bg); }
 .cell.has-seat .body { cursor: pointer; }
 .cell.has-seat .body:hover .st { text-decoration: underline; }
 .cell .st .go { font-weight: 700; font-size: 10px; }
