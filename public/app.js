@@ -113,7 +113,7 @@
     var boats = state.board.boats || [];
     var vis = boats.length - boats.filter(function (b) { return hidden.has(b.id); }).length;
     el.boatbar.innerHTML =
-      '<button class="bb-open" data-open-boats>＋ 배 선택 <b>' + vis + " / " + boats.length + "</b></button>";
+      '<button class="bb-open" data-open-boats>선박 선택 <b>' + vis + " / " + boats.length + "</b></button>";
     el.boatbar.querySelector("[data-open-boats]").onclick = openBoatPicker;
   }
   function bySiteGroups() {
@@ -130,7 +130,7 @@
     var p = document.createElement("div");
     p.className = "panel sheet";
     p.innerHTML =
-      '<div class="panel-head"><h2>배 선택</h2><button class="icon-btn" data-close>✕</button></div>' +
+      '<div class="panel-head"><h2>선박 선택</h2><button class="icon-btn" data-close>✕</button></div>' +
       '<div class="panel-body" id="bpBody"></div>' +
       '<div class="panel-foot">' +
       '<button data-all="show">전체 선택</button><button data-all="hide">전체 해제</button>' +
@@ -194,17 +194,10 @@
     render();
   }
   function renderFlowBar() {
-    var h = '<span class="bb-label">조류 세기</span>' +
-      '<button class="bb-chip" data-flow="0" aria-pressed="' + (flowMax === 0) + '">전체</button>' +
-      FLOW_STEPS.map(function (s) {
-        return '<button class="bb-chip" data-flow="' + s + '" aria-pressed="' + (flowMax === s) + '">' + s + "% 이하</button>";
-      }).join("") +
-      '<span class="bb-sep"></span>' +
-      '<button class="bb-chip" data-seatonly aria-pressed="' + seatOnly + '">잔여석 있는 날만</button>';
-    el.flowbar.innerHTML = h;
-    el.flowbar.querySelectorAll("[data-flow]").forEach(function (btn) {
-      btn.onclick = function () { setFlowMax(Number(btn.getAttribute("data-flow"))); };
-    });
+    el.flowbar.innerHTML =
+      '<button class="bb-chip" data-flow70 aria-pressed="' + (flowMax === 70) + '">조류 70% 이하</button>' +
+      '<button class="bb-chip" data-seatonly aria-pressed="' + seatOnly + '">예약 가능</button>';
+    el.flowbar.querySelector("[data-flow70]").onclick = function () { setFlowMax(flowMax === 70 ? 0 : 70); };
     el.flowbar.querySelector("[data-seatonly]").onclick = function () { setSeatOnly(!seatOnly); };
   }
 
@@ -353,7 +346,7 @@
     }).join("");
 
     var hintRow = boats.length === 0
-      ? '<tr><td class="empty" colspan="2">위 <b>배 표시</b> 에서 볼 배를 선택하세요 →</td></tr>'
+      ? '<tr><td class="empty" colspan="2">위 <b>선박 선택</b> 에서 볼 배를 고르세요</td></tr>'
       : "";
     el.body.innerHTML = (hintRow + rowsHtml) ||
       '<tr><td class="empty" colspan="' + (2 + boats.length) + '">이 달 데이터가 없습니다.</td></tr>';
