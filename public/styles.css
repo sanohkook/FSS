@@ -137,7 +137,7 @@ button[disabled] { opacity: .5; cursor: default; }
 .flt-sec > .bb-chip[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
 .flt-sec > .bb-chip[data-seatonly][aria-pressed="true"] { background: var(--open); border-color: var(--open); }
 .legendbox { font-size: 11px; }
-.legendbox > summary { cursor: pointer; color: var(--ink-3); list-style: none; padding: 3px 6px; }
+.legendbox > summary { cursor: pointer; color: var(--ink-3); list-style: none; padding: 3px 6px; font-size: 15px; }
 .legendbox > summary::-webkit-details-marker { display: none; }
 .legendbox[open] > summary { color: var(--ink-2); }
 .lg-flow { width: 22px; height: 10px; border-radius: 3px; display: inline-block;
