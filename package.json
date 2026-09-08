@@ -7,9 +7,11 @@
   "scripts": {
     "start": "node server/index.js",
     "scrape": "node server/scrape/index.js",
-    "tide": "node server/refreshTide.js"
+    "tide": "node server/importKhoa.js",
+    "tide:badatime": "node server/refreshTide.js --badatime"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "xlsx": "^0.18.5"
   }
 }

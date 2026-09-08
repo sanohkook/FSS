@@ -9,11 +9,12 @@ npm install      # 최초 1회 (express)
 npm start        # http://localhost:3300
 ```
 
-- 물때·조류: `data/tide.json` (2026–2027 번들). 갱신 없이 동작 — 바다타임도 2028년 자료 없음.
-  - 근월만 새로 받기: `npm run tide` (바다타임, **비영리 개인용에 한함**).
-  - 공식 소스: `npm run tide -- --khoa` — 국립해양조사원 조석예보 API. 무료 인증키 필요
-    (`export KHOA_KEY=...`, https://www.khoa.go.kr/oceangrid/). 약관상 자유, 2028년 이후에도 사용 가능.
-  - 물때(3물/조금/사리)는 음력일로 계산: `n=(음력일+6)%15`, 0→무시·14→조금.
+- 물때·조류: `data/tide.json` — **국립해양조사원(KHOA) 인천 조석예보** 기반. 2026–2027 전량 번들.
+  - 재생성: `npm run tide` → `server/importKhoa.js` 가 `khoa/incheon_*.xls` 24개월을 읽어
+    날짜별 조석(고/저 시각·조위), 조류 세기 %(그날 조차를 ±14일 구간 최소~최대로 정규화),
+    물때(음력일 `n=(음력일+6)%15`, 0→무시·14→조금)를 계산.
+  - 새 xls 는 KHOA 조석예보 페이지에서 월별 다운로드해 `khoa/` 에 넣는다. (2028년 이후는 추산값)
+  - 대안: `npm run tide:badatime` (바다타임 파싱, 비영리 개인용). `server/refreshTide.js` 에 KHOA OpenAPI(`--khoa`, `KHOA_KEY` 필요) 경로도 있음.
 - 예약 현황: `data/avail.json` (스크레이프 캐시, git 무시).
 
 ## 예약 현황 갱신

@@ -200,15 +200,16 @@
             '<span class="body" data-url="" title="예약 정보 없음"><span class="st">–</span></span>' +
             '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button></div></td>";
         }
-        var label, sub = "";
+        var label, sub = "", open = c.status === "few" || c.status === "open";
         if (c.status === "full") { label = "마감"; sub = c.total ? c.total + "/" + c.total : ""; }
-        else if (c.status === "few" || c.status === "open") {
+        else if (open) {
           label = "잔여 " + c.remain + "석";
-          sub = c.total ? (c.total - c.remain) + "/" + c.total : "";
+          sub = c.total ? (c.total - c.remain) + "/" + c.total : "예약하기 ↗";
         } else { label = "예약 확인"; sub = "인원정보 없음"; }
-        return '<td class="c-boat"><div class="cell s-' + c.status + '">' +
-          '<span class="body" data-url="' + esc(c.url) + '" title="' + esc(bt.name) + " · " + r.date + ' 예약 페이지">' +
-          '<span class="st">' + esc(label) + "</span>" +
+        return '<td class="c-boat"><div class="cell s-' + c.status + (open ? " has-seat" : "") + '">' +
+          '<span class="body" data-url="' + esc(c.url) + '" title="' + esc(bt.name) + " · " + r.date +
+          (open ? ' 예약하기' : ' 예약 페이지') + '">' +
+          '<span class="st">' + esc(label) + (open ? ' <span class="go">↗</span>' : "") + "</span>" +
           (sub ? '<span class="sub mono">' + esc(sub) + "</span>" : "") + "</span>" +
           '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button>" +
           "</div></td>";
@@ -233,8 +234,9 @@
 
     var when = b.updatedAt ? new Date(b.updatedAt).toLocaleString("ko-KR") : "없음";
     el.footNote.innerHTML =
-      "<b>물때·조류</b>는 바다타임 인천(158) 자료. 조류 %는 그날 조차의 상대 세기(≈ 는 추정치). " +
-      "<b>예약 현황</b> 마지막 갱신: " + esc(when) + " · 사이트 " + b.sites.filter(function (s) { return s.enabled !== false; }).length + "곳.";
+      "<b>물때·조류</b>는 국립해양조사원 인천 조석예보 기반. 조류 %는 그날 조차의 상대 세기, 물때는 음력 기준 계산. " +
+      "<b>예약 현황</b> 마지막 갱신: " + esc(when) + " · 사이트 " + b.sites.filter(function (s) { return s.enabled !== false; }).length + "곳. " +
+      "잔여석이 있는 칸은 클릭하면 해당 배 예약 페이지가 열립니다.";
   }
 
   // ---------- table interactions ----------
