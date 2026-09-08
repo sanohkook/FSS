@@ -108,27 +108,47 @@
   function visibleBoats() {
     return (state.board.boats || []).filter(function (b) { return !hidden.has(b.id); });
   }
-  var bbCollapsed = (function () {
-    try {
-      var s = localStorage.getItem("ijb.bbCollapsed");
-      if (s !== null) return s === "1";
-    } catch (e) {}
-    return window.matchMedia("(max-width: 640px)").matches; // 모바일 기본 접힘
-  })();
+  // 배 선택 = 슬림 버튼 → 팝업. 메인 화면엔 버튼만.
   function renderBoatBar() {
     var boats = state.board.boats || [];
     var vis = boats.length - boats.filter(function (b) { return hidden.has(b.id); }).length;
-    var bySite = [];
+    el.boatbar.innerHTML =
+      '<button class="bb-open" data-open-boats>＋ 배 선택 <b>' + vis + " / " + boats.length + "</b></button>";
+    el.boatbar.querySelector("[data-open-boats]").onclick = openBoatPicker;
+  }
+  function bySiteGroups() {
+    var boats = state.board.boats || [];
+    var g = [];
     boats.forEach(function (b) {
-      var g = bySite.filter(function (x) { return x.site === b.site; })[0];
-      if (!g) { g = { site: b.site, boats: [] }; bySite.push(g); }
-      g.boats.push(b);
+      var s = g.filter(function (x) { return x.site === b.site; })[0];
+      if (!s) { s = { site: b.site, boats: [] }; g.push(s); }
+      s.boats.push(b);
     });
-    var h = '<div class="bb-head"><button class="bb-toggle" data-bbtoggle>배 표시 ' +
-      (bbCollapsed ? "▸" : "▾") + '</button>' +
-      '<span class="bb-count">' + vis + " / " + boats.length + "</span></div>";
-    if (bbCollapsed) { el.boatbar.innerHTML = h; wireBoatBar(boats); return; }
-    h += '<div class="bb-grid">' + bySite.map(function (g) {
+    return g;
+  }
+  function openBoatPicker() {
+    var p = document.createElement("div");
+    p.className = "panel sheet";
+    p.innerHTML =
+      '<div class="panel-head"><h2>배 선택</h2><button class="icon-btn" data-close>✕</button></div>' +
+      '<div class="panel-body" id="bpBody"></div>' +
+      '<div class="panel-foot">' +
+      '<button data-all="show">전체 선택</button><button data-all="hide">전체 해제</button>' +
+      '<button class="btn-primary" data-close>완료</button></div>';
+    openOverlay("right", p);
+    p.querySelectorAll("[data-close]").forEach(function (b) { b.onclick = closeOverlay; });
+    p.querySelector('[data-all="show"]').onclick = function () {
+      hidden.clear(); saveHidden(); render(); drawBoatPicker(p);
+    };
+    p.querySelector('[data-all="hide"]').onclick = function () {
+      (state.board.boats || []).forEach(function (b) { hidden.add(b.id); });
+      saveHidden(); render(); drawBoatPicker(p);
+    };
+    drawBoatPicker(p);
+  }
+  function drawBoatPicker(p) {
+    var body = p.querySelector("#bpBody");
+    body.innerHTML = '<div class="bb-grid">' + bySiteGroups().map(function (g) {
       var allHidden = g.boats.every(function (b) { return hidden.has(b.id); });
       return '<div class="bb-sitename">' + esc(g.site) +
         '<button class="bb-all" data-site-toggle="' + esc(g.site) + '">' + (allHidden ? "＋전체" : "－해제") + "</button></div>" +
@@ -136,30 +156,20 @@
           return '<button class="bb-chip" data-boat-toggle="' + esc(b.id) + '" aria-pressed="' + (!hidden.has(b.id)) + '">' + esc(b.name) + "</button>";
         }).join("") + "</div>";
     }).join("") + "</div>";
-    el.boatbar.innerHTML = h;
-    wireBoatBar(boats);
-  }
-  function wireBoatBar(boats) {
-    var t = el.boatbar.querySelector("[data-bbtoggle]");
-    if (t) t.onclick = function () {
-      bbCollapsed = !bbCollapsed;
-      try { localStorage.setItem("ijb.bbCollapsed", bbCollapsed ? "1" : "0"); } catch (e) {}
-      renderBoatBar();
-    };
-    el.boatbar.querySelectorAll("[data-boat-toggle]").forEach(function (btn) {
+    body.querySelectorAll("[data-boat-toggle]").forEach(function (btn) {
       btn.onclick = function () {
         var id = btn.getAttribute("data-boat-toggle");
         hidden.has(id) ? hidden.delete(id) : hidden.add(id);
-        saveHidden(); render();
+        saveHidden(); render(); drawBoatPicker(p);
       };
     });
-    el.boatbar.querySelectorAll("[data-site-toggle]").forEach(function (btn) {
+    body.querySelectorAll("[data-site-toggle]").forEach(function (btn) {
       btn.onclick = function () {
         var site = btn.getAttribute("data-site-toggle");
-        var gb = boats.filter(function (b) { return b.site === site; });
+        var gb = (state.board.boats || []).filter(function (b) { return b.site === site; });
         var allHidden = gb.every(function (b) { return hidden.has(b.id); });
         gb.forEach(function (b) { allHidden ? hidden.delete(b.id) : hidden.add(b.id); });
-        saveHidden(); render();
+        saveHidden(); render(); drawBoatPicker(p);
       };
     });
   }
@@ -224,13 +234,13 @@
     // 첫 실행: 모든 배 숨김 상태로 시작 → 사용자가 볼 배를 고른다
     if (!booted) {
       booted = true;
-      try {
-        if (localStorage.getItem("ijb.hiddenBoats") === null) {
-          (b.boats || []).forEach(function (x) { hidden.add(x.id); });
-          saveHidden();
-          bbCollapsed = false;
-        }
-      } catch (e) {}
+      var firstRun = false;
+      try { firstRun = localStorage.getItem("ijb.hiddenBoats") === null; } catch (e) {}
+      if (firstRun) {
+        (b.boats || []).forEach(function (x) { hidden.add(x.id); });
+        saveHidden();
+        setTimeout(openBoatPicker, 300);
+      }
     }
     if (el.mLabel) {
       var mm = state.months.map(function (m) { return +m.slice(5, 7) + "월"; });
@@ -359,12 +369,15 @@
     var upd = document.getElementById("updAge");
     if (upd) {
       if (b.updatedAt) {
-        var mins = Math.round((Date.now() - new Date(b.updatedAt)) / 60000);
-        var rel = mins < 1 ? "방금" : mins < 60 ? mins + "분 전" : Math.round(mins / 60) + "시간 전";
-        upd.textContent = "예약 " + rel;
-        upd.classList.toggle("stale", mins > 180);
-        upd.title = "예약 현황 마지막 갱신: " + new Date(b.updatedAt).toLocaleString("ko-KR");
-      } else { upd.textContent = ""; }
+        var dt = new Date(b.updatedAt);
+        var pad2 = function (n) { return (n < 10 ? "0" : "") + n; };
+        var stamp = dt.getFullYear() + "-" + pad2(dt.getMonth() + 1) + "-" + pad2(dt.getDate()) +
+          " " + pad2(dt.getHours()) + ":" + pad2(dt.getMinutes());
+        var mins = Math.round((Date.now() - dt) / 60000);
+        upd.textContent = stamp + " 갱신";
+        upd.classList.toggle("stale", mins > 360);
+        upd.title = "예약 현황 마지막 갱신 (" + Math.round(mins / 60) + "시간 전)";
+      } else { upd.textContent = "미조회"; }
     }
 
     var when = b.updatedAt ? new Date(b.updatedAt).toLocaleString("ko-KR") : "없음";

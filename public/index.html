@@ -29,12 +29,18 @@
   </header>
 
   <div class="wrap">
-    <div class="boatbar" id="boatbar" aria-label="배 표시/숨김"></div>
-    <div class="mulbar" id="flowbar" aria-label="조류 세기 필터"></div>
-    <div class="legend">
-      <span class="grp"><span class="mul t-sari" style="padding:1px 6px">7·8물</span> 큰 물(사리)</span>
-      <span class="grp"><span class="mul t-mid" style="padding:1px 6px">5·6·9·10물</span> 중간</span>
-      <span class="grp"><span class="chip s-open">여유</span><span class="chip s-few">잔여 임박</span><span class="chip s-full">마감</span><span class="chip s-unknown">예약 확인</span></span>
+    <div class="controls">
+      <span class="boatbar" id="boatbar" aria-label="배 선택"></span>
+      <span class="mulbar" id="flowbar" aria-label="조류 세기 필터"></span>
+      <details class="legendbox">
+        <summary>범례</summary>
+        <div class="legend">
+          <span class="grp"><span class="mul t-sari" style="padding:1px 6px">7·8물</span> 큰 물(사리)</span>
+          <span class="grp"><span class="mul t-mid" style="padding:1px 6px">5·6·9·10물</span> 중간</span>
+          <span class="grp"><span class="chip s-open">여유</span><span class="chip s-few">잔여 임박</span><span class="chip s-full">마감</span><span class="chip s-unknown">예약 확인</span></span>
+          <span class="grp"><span class="lg-flow"></span> 물때 칸 배경 = 조류 세기</span>
+        </div>
+      </details>
     </div>
 
     <div class="hscroll" id="hscroll" hidden>
