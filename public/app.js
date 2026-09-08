@@ -393,8 +393,32 @@
       return;
     }
     var body = e.target.closest(".body");
-    if (body && body.getAttribute("data-url")) window.open(body.getAttribute("data-url"), "_blank", "noopener");
+    if (!body) return;
+    var url = body.getAttribute("data-url");
+    if (!url) return;
+    var cell = body.closest(".cell");
+    // 잔여석(예약 가능) 칸은 두 번 터치해야 이동 — 실수 방지
+    if (cell && cell.classList.contains("has-seat")) {
+      if (armedCell === body) {
+        clearTimeout(armTimer); armedCell = null;
+        if (cell) cell.classList.remove("armed");
+        window.open(url, "_blank", "noopener");
+      } else {
+        if (armedCell) armedCell.closest(".cell").classList.remove("armed");
+        armedCell = body;
+        cell.classList.add("armed");
+        toast("한 번 더 누르면 예약 페이지가 열립니다");
+        clearTimeout(armTimer);
+        armTimer = setTimeout(function () {
+          if (armedCell) armedCell.closest(".cell").classList.remove("armed");
+          armedCell = null;
+        }, 2500);
+      }
+      return;
+    }
+    window.open(url, "_blank", "noopener");
   });
+  var armedCell = null, armTimer;
 
 
   // ---------- 표 좌우 스크롤 ----------

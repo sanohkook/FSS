@@ -285,6 +285,8 @@ td.c-boat { padding: 5px 6px; border-left: 1px solid var(--line-2); }
 .cell.s-link .body { cursor: pointer; }
 .cell.s-link .body:hover .sub { color: var(--accent); }
 .cell.has-seat { border-color: color-mix(in srgb, var(--open) 45%, var(--line)); background: var(--open-bg); }
+.cell.armed { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cell.armed .st::after { content: " ↗"; color: var(--accent); }
 .cell.has-seat .body { cursor: pointer; }
 .cell.has-seat .body:hover .st { text-decoration: underline; }
 .cell .st .go { font-weight: 700; font-size: 10px; }
