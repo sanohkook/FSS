@@ -323,20 +323,20 @@
         if (c.status === "link") {
           return '<td class="c-boat"><div class="cell s-link">' +
             '<span class="body" data-url="' + esc(c.url) + '" title="' + esc(bt.name) + " 예약 페이지 (파싱 규칙 없음)\">" +
-            '<span class="st">✕</span><span class="sub">예약 페이지 ↗</span></span>' +
+            '<span class="st">✕</span><span class="sub">예약 페이지</span></span>' +
             '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button></div></td>";
         }
         var label, sub = "", open = c.status === "few" || c.status === "open";
         if (c.status === "full") { label = "마감"; sub = c.total ? c.total + "/" + c.total : ""; }
         else if (open) {
           label = "잔여 " + c.remain + "석";
-          sub = c.total ? (c.total - c.remain) + "/" + c.total : "예약하기 ↗";
+          sub = c.total ? (c.total - c.remain) + "/" + c.total : "예약하기";
         } else { label = "예약 확인"; sub = "인원정보 없음"; }
         var fx = fishAbbr(c.fish);
         return '<td class="c-boat"><div class="cell s-' + c.status + (open ? " has-seat" : "") + '">' +
           '<span class="body" data-url="' + esc(c.url) + '" title="' + esc(bt.name) + " · " + r.date +
           (c.fish ? " · " + esc(c.fish) : "") + (open ? ' 예약하기' : ' 예약 페이지') + '">' +
-          '<span class="st">' + (fx ? '<span class="fx">' + esc(fx) + "</span> " : "") + esc(label) + (open ? ' <span class="go">↗</span>' : "") + "</span>" +
+          '<span class="st">' + (fx ? '<span class="fx">' + esc(fx) + "</span> " : "") + esc(label) + "</span>" +
           (sub ? '<span class="sub mono">' + esc(sub) + "</span>" : "") + "</span>" +
           '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button>" +
           "</div></td>";
