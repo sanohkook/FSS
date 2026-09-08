@@ -1,6 +1,7 @@
 package kr.co.fss.yeyak
 
 import android.content.Context
+import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URL
@@ -214,6 +215,7 @@ object Scrape {
         val errors = JSONArray()
         var collected = 0
 
+        Log.i("fss", "refreshAll $fromIso ~ $toIso, sites=${sites.length()}")
         for (i in 0 until sites.length()) {
             val site = sites.getJSONObject(i)
             if (site.optBoolean("enabled", true).not()) continue
@@ -225,11 +227,13 @@ object Scrape {
                     else -> { summary.put(JSONObject().put("site", site.getString("id")).put("kind", kind).put("days", 0).put("note", "링크 전용")); continue }
                 }
             } catch (e: Exception) {
+                Log.w("fss", "${site.optString("id")} 실패", e)
                 errors.put("${site.getString("id")}: ${e.message}")
                 summary.put(JSONObject().put("site", site.getString("id")).put("kind", kind).put("days", 0).put("note", e.message))
                 continue
             }
-            acc.errors.forEach { errors.put(it) }
+            acc.errors.forEach { errors.put(it); Log.w("fss", it) }
+            Log.i("fss", "${site.optString("id")}: 배 ${acc.boats.size}, 날짜블록 ${acc.byDate.size}")
             val sid = site.getString("id")
             for ((uid, meta) in acc.boats) {
                 val id = "$sid:$uid"

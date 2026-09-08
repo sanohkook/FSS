@@ -2,9 +2,9 @@ package kr.co.fss.yeyak
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.os.Build
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
+import android.util.Log
 import android.view.View
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -34,14 +34,14 @@ class MainActivity : Activity() {
         try {
             server = LocalServer(applicationContext, port).apply { start(10000, false) }
         } catch (e: Exception) {
-            // 이미 떠 있거나 포트 충돌 — 무시하고 진행
+            Log.w("fss", "server start", e)
         }
 
         val root = FrameLayout(this)
         web = WebView(this)
         bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
-            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 8)
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 6)
         }
         root.addView(web, FrameLayout.LayoutParams(-1, -1))
         root.addView(bar)
@@ -52,8 +52,10 @@ class MainActivity : Activity() {
             domStorageEnabled = true
             loadWithOverviewMode = true
             useWideViewPort = true
-            builtInZoomControls = true
+            builtInZoomControls = false
             displayZoomControls = false
+            setSupportZoom(false)
+            textZoom = 100
             cacheMode = WebSettings.LOAD_NO_CACHE
         }
         web.webChromeClient = object : WebChromeClient() {
@@ -66,32 +68,43 @@ class MainActivity : Activity() {
             override fun shouldOverrideUrlLoading(v: WebView, req: WebResourceRequest): Boolean {
                 val url = req.url.toString()
                 if (url.startsWith(base)) return false
-                // 예약 사이트 등 외부 링크는 기본 브라우저로
                 return runCatching {
                     startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, req.url)); true
                 }.getOrDefault(false)
             }
         }
 
+        // 첫 실행(또는 데이터 없음/오래됨) → 백그라운드로 예약 사이트 조회
+        Thread {
+            try {
+                val store = Store(applicationContext)
+                val avail = store.avail()
+                val updated = avail.optString("updatedAt", "")
+                val old = updated.isEmpty() || olderThanHours(updated, 6)
+                if (old) Scrape.refreshAll(applicationContext, store)
+            } catch (e: Exception) {
+                Log.w("fss", "initial refresh", e)
+            } finally {
+                runOnUiThread { web.reload() }
+            }
+        }.start()
+
         if (savedInstanceState != null) web.restoreState(savedInstanceState) else web.loadUrl(base)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, 1, 0, "다시 불러오기")
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        1 -> { web.loadUrl(base); true }
-        else -> super.onOptionsItemSelected(item)
-    }
+    private fun olderThanHours(isoZ: String, h: Int): Boolean = try {
+        val f = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+        f.timeZone = java.util.TimeZone.getTimeZone("UTC")
+        val t = f.parse(isoZ)?.time ?: return true
+        System.currentTimeMillis() - t > h * 3600_000L
+    } catch (e: Exception) { true }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         web.saveState(outState)
     }
 
-    @Deprecated("back")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         if (web.canGoBack()) web.goBack() else super.onBackPressed()
     }

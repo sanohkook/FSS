@@ -108,6 +108,13 @@
   function visibleBoats() {
     return (state.board.boats || []).filter(function (b) { return !hidden.has(b.id); });
   }
+  var bbCollapsed = (function () {
+    try {
+      var s = localStorage.getItem("ijb.bbCollapsed");
+      if (s !== null) return s === "1";
+    } catch (e) {}
+    return window.matchMedia("(max-width: 640px)").matches; // 모바일 기본 접힘
+  })();
   function renderBoatBar() {
     var boats = state.board.boats || [];
     var vis = boats.length - boats.filter(function (b) { return hidden.has(b.id); }).length;
@@ -117,8 +124,10 @@
       if (!g) { g = { site: b.site, boats: [] }; bySite.push(g); }
       g.boats.push(b);
     });
-    var h = '<div class="bb-head"><span class="bb-label">배 표시</span>' +
+    var h = '<div class="bb-head"><button class="bb-toggle" data-bbtoggle>배 표시 ' +
+      (bbCollapsed ? "▸" : "▾") + '</button>' +
       '<span class="bb-count">' + vis + " / " + boats.length + "</span></div>";
+    if (bbCollapsed) { el.boatbar.innerHTML = h; wireBoatBar(boats); return; }
     h += '<div class="bb-grid">' + bySite.map(function (g) {
       var allHidden = g.boats.every(function (b) { return hidden.has(b.id); });
       return '<div class="bb-sitename">' + esc(g.site) +
@@ -128,6 +137,15 @@
         }).join("") + "</div>";
     }).join("") + "</div>";
     el.boatbar.innerHTML = h;
+    wireBoatBar(boats);
+  }
+  function wireBoatBar(boats) {
+    var t = el.boatbar.querySelector("[data-bbtoggle]");
+    if (t) t.onclick = function () {
+      bbCollapsed = !bbCollapsed;
+      try { localStorage.setItem("ijb.bbCollapsed", bbCollapsed ? "1" : "0"); } catch (e) {}
+      renderBoatBar();
+    };
     el.boatbar.querySelectorAll("[data-boat-toggle]").forEach(function (btn) {
       btn.onclick = function () {
         var id = btn.getAttribute("data-boat-toggle");
@@ -223,9 +241,12 @@
       }).join("") +
       "</tr>";
 
-    // 표 전체 폭 = 고정 3열(198) + 배 수 × 112  (열폭 고정, 배만큼만 넓어짐)
+    // 표 전체 폭 = 고정 3열 + 배 수 × 열폭 (모바일에서 더 좁게)
+    var mobile = window.matchMedia("(max-width: 640px)").matches;
+    var FROZEN_W = mobile ? 136 : 198;
+    var BOAT_W = mobile ? 92 : 112;
     var tbl = el.head.closest("table");
-    if (tbl) tbl.style.width = 198 + boats.length * 112 + "px";
+    if (tbl) tbl.style.width = FROZEN_W + boats.length * BOAT_W + "px";
 
     var mine = planSet();
     var shownRows = b.rows.filter(function (r) {
