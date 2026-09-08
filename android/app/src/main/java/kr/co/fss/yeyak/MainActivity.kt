@@ -5,6 +5,7 @@ import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -57,6 +58,11 @@ class MainActivity : Activity() {
             textZoom = 100
             cacheMode = WebSettings.LOAD_NO_CACHE
         }
+        web.addJavascriptInterface(Bridge(), "FssNative")
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
+
         web.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(v: WebView?, p: Int) {
                 bar.progress = p
@@ -90,5 +96,20 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         super.onDestroy()
         server?.stop()
+    }
+
+    /** WebView(로컬 화면) ↔ 앱 브리지 — 업그레이드용 */
+    inner class Bridge {
+        @JavascriptInterface
+        fun appVersion(): String = BuildConfig.VERSION_NAME
+
+        @JavascriptInterface
+        fun upgrade() {
+            Updater.run(this@MainActivity) { js ->
+                runOnUiThread {
+                    web.evaluateJavascript("window.__fssUpstate&&window.__fssUpstate($js)", null)
+                }
+            }
+        }
     }
 }

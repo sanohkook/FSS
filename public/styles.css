@@ -291,7 +291,15 @@ td.c-boat { padding: 5px 6px; border-left: 1px solid var(--line-2); }
 .cell.has-seat .body:hover .st { text-decoration: underline; }
 .cell.has-seat .sub { color: var(--accent); }
 .cell { cursor: pointer; }
-#refreshBtn.busy { opacity: .75; cursor: progress; }
+#refreshBtn { position: relative; overflow: hidden; min-width: 74px; text-align: center; }
+#refreshBtn.busy { cursor: progress; }
+#refreshBtn .lbl { position: relative; z-index: 1; }
+#refreshBtn .prog {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0; z-index: 0;
+  background: color-mix(in srgb, var(--on-accent) 32%, transparent);
+  border-right: 2px solid var(--on-accent);
+  transition: width 38s cubic-bezier(.04,.72,.15,1);
+}
 /* 나의 예약 = 형광 초록 배경 */
 .cell.mine { background: #7dfc9a !important; border-color: #22c55e; }
 .cell.mine .st, .cell.mine .sub, .cell.mine .st .fx { color: #0b3d1c !important; }

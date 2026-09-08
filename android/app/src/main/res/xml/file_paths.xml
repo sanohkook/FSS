@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 다운로드한 업데이트 APK 를 다른 앱(패키지 설치기)에 넘겨주기 위한 경로 -->
+    <cache-path name="updates" path="updates/" />
+</paths>

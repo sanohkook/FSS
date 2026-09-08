@@ -30,11 +30,28 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradle
 
 ## 사용
 
-- 앱을 열면 바로 이번 달~12월 예약현황이 뜹니다.
-- **갱신** 버튼 → 예약 사이트 재조회 (30초~2분, 셀 개수만큼).
-- 예약 셀 클릭 → 해당 배 예약 페이지가 기본 브라우저로.
-- ☆ → 나의 예약 저장. **설정·배 추가** → 사이트 관리.
-- 메뉴(⋮) → 다시 불러오기.
+- 앱을 열면 마지막으로 받아둔 예약현황이 뜹니다. **자동 갱신 없음.**
+- **Refresh** 버튼 → 예약 사이트 재조회 (30초~2분, 셀 개수만큼). 좌→우 진행 막대 표시.
+- 예약 셀 한 번 탭 → 나의 예약(형광초록) 토글, 두 번 탭 → 해당 배 예약 페이지.
+- **사이트 추가** → 사이트 관리. **검색 조건** → 예약가능·조류·요일/공휴일·선박 필터.
+
+## 앱 업데이트 (GitHub Releases)
+
+앱의 **업그레이드** 버튼이 `github.com/sanohkook/FSS` 의 최신 릴리스를 확인해
+새 버전이면 APK 를 내려받아 설치 화면을 띄운다. (최초 1회 "이 출처의 앱 설치 허용" 필요)
+
+새 버전 배포:
+
+```bash
+cd android
+./release.sh 2.3        # versionCode 자동 +1, versionName 2.3, 서명 빌드 + 태그 push
+# gh CLI 미인증이면 안내대로 https://github.com/sanohkook/FSS/releases 에서 수동 생성
+```
+
+- 서명 키: `android/fss-release.jks` + `android/keystore.properties` (git 제외).
+  **분실하면 이후 업데이트 영구 불가** — 별도 안전한 곳에 백업할 것.
+- 릴리스 규칙: 태그 `vX.Y`, 자산으로 `app-release.apk` 하나.
+- 첫 배포 APK 부터 이 키로 서명해야 이후 인앱 업데이트가 됨(디버그 설치본 위에는 덮어쓰기 불가 → 재설치).
 
 ## 구조 (server/ ↔ android/)
 

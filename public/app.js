@@ -482,18 +482,27 @@
     var btn = this;
     btn.disabled = true;
     btn.classList.add("busy");
-    var dots = 0;
-    btn.textContent = "Waiting";
-    var anim = setInterval(function () {
-      dots = (dots + 1) % 4;
-      btn.textContent = "Waiting" + Array(dots + 1).join(".");
-    }, 500);
+    btn.innerHTML = '<span class="lbl">waiting…</span><i class="prog"></i>';
+    var bar = btn.querySelector(".prog");
+    // 실제 진행률은 알 수 없음 → 약 40초에 걸쳐 92%까지 서서히 차오르고 응답 시 100%
+    bar.style.width = "3%";
+    void bar.offsetWidth; // 트랜지션 시작점 확정
+    requestAnimationFrame(function () { bar.style.width = "92%"; });
+    var finish = function () {
+      bar.style.transition = "width .25s ease";
+      bar.style.width = "100%";
+      setTimeout(function () {
+        btn.disabled = false;
+        btn.classList.remove("busy");
+        btn.textContent = "Refresh";
+      }, 280);
+    };
     api("POST", "/api/refresh").then(function (r) {
       var days = (r.summary || []).map(function (s) { return s.site + " " + s.days + "일"; }).join(" · ");
       toast(r.ok ? "새로고침 완료 — " + days : (r.message || "새로고침 실패"));
       return load();
     }).catch(function (err) { toast("새로고침 실패: " + err.message); })
-      .finally(function () { clearInterval(anim); btn.disabled = false; btn.classList.remove("busy"); btn.textContent = "Refresh"; });
+      .finally(finish);
   };
 
   // ---------- overlay ----------
@@ -580,7 +589,7 @@
         return '<div class="plan-item"><span class="pd mono">' + esc(x.date) + '</span>' +
           '<span class="pb">' + esc(boatName[x.boatId] || x.boatId) + "</span>" +
           '<button class="link-btn" data-del data-date="' + x.date + '" data-boat="' + esc(x.boatId) + '">삭제</button></div>';
-      }).join("") : '<p class="hint">표에서 ☆ 를 눌러 예약 계획을 저장하세요.</p>') +
+      }).join("") : '<p class="hint">표에서 셀을 한 번 눌러 예약 계획을 저장하세요.</p>') +
       "</div>";
     openOverlay("center", p);
     p.querySelector("[data-close]").onclick = closeOverlay;
@@ -591,6 +600,31 @@
       };
     });
   };
+
+  // ---------- 업그레이드 (안드로이드 앱 전용) ----------
+  (function () {
+    var ub = document.getElementById("upgradeBtn");
+    if (!ub || !window.FssNative) return;
+    var ver = "";
+    try { ver = FssNative.appVersion(); } catch (e) {}
+    ub.hidden = false;
+    if (ver) ub.title = "현재 버전 " + ver;
+    var reset = function () { ub.disabled = false; ub.textContent = "업그레이드"; };
+    ub.onclick = function () {
+      ub.disabled = true;
+      ub.textContent = "확인 중…";
+      try { FssNative.upgrade(); } catch (e) { toast("업그레이드를 시작할 수 없습니다"); reset(); }
+    };
+    window.__fssUpstate = function (s) {
+      if (!s || !s.phase) return;
+      if (s.phase === "checking") { ub.textContent = "확인 중…"; }
+      else if (s.phase === "none") { toast("이미 최신 버전입니다" + (s.current ? " (" + s.current + ")" : "")); reset(); }
+      else if (s.phase === "downloading") { ub.textContent = "받는 중 " + (s.pct || 0) + "%"; }
+      else if (s.phase === "permission") { toast("설정에서 ‘이 출처의 앱 설치 허용’을 켠 뒤 다시 눌러주세요"); reset(); }
+      else if (s.phase === "install") { toast("설치 화면에서 계속 진행하세요"); reset(); }
+      else if (s.phase === "error") { toast("업데이트 실패: " + (s.msg || "")); reset(); }
+    };
+  })();
 
   load().catch(function (e) {
     el.body.innerHTML = '<tr><td class="empty">불러오기 실패: ' + esc(e.message) + "</td></tr>";
