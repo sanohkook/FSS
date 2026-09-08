@@ -330,7 +330,7 @@
         if (c.status === "full") { label = "마감"; sub = c.total ? c.total + "/" + c.total : ""; }
         else if (open) {
           label = "잔여 " + c.remain + "석";
-          sub = c.total ? (c.total - c.remain) + "/" + c.total : "예약하기";
+          sub = c.total ? (c.total - c.remain) + "/" + c.total : "";
         } else { label = "예약 확인"; sub = "인원정보 없음"; }
         var fx = fishAbbr(c.fish);
         return '<td class="c-boat"><div class="cell s-' + c.status + (open ? " has-seat" : "") + '">' +

@@ -271,7 +271,7 @@ td.c-date .lun { display: block; font-size: 10.5px; color: var(--ink-3); }
 td.c-boat { padding: 5px 6px; border-left: 1px solid var(--line-2); }
 .cell {
   width: 100%; display: flex; align-items: center; gap: 6px; padding: 6px 7px; border-radius: 8px;
-  border: 1px solid var(--line); background: var(--surface); text-align: left; min-height: 55px;
+  border: 1px solid var(--line); background: var(--surface); text-align: left; min-height: 44px;
 }
 .cell .body { flex: 1; min-width: 0; cursor: pointer; }
 .cell .body:hover { color: var(--accent); }
@@ -385,7 +385,7 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
   .mul { padding: 1px 5px; font-size: 11px; }
   .mul .tag { font-size: 8px; padding: 0 3px; }
   td.c-mul .fnum { font-size: 8.5px; }
-  .cell { min-height: 48px; padding: 5px 4px; gap: 3px; }
+  .cell { min-height: 40px; padding: 4px 4px; gap: 3px; }
   .cell .st { font-size: 11px; }
   .cell .st .fx { font-size: 9px; }
   .cell .sub { font-size: 9px; }
