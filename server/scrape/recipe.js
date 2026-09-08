@@ -1,7 +1,7 @@
 // 저장된 "레시피"(정규식 규칙 데이터)로 임의 예약 사이트를 파싱한다.
 // 레시피는 AI(server/scrape/ai.js)가 사이트 추가 시 1회 생성 → sites.json 에 저장.
 // 이후 조회는 이 파일이 토큰 없이 처리한다.
-import { httpGet, stripTags } from "./http.js";
+import { httpGet, stripTags, detectFish } from "./http.js";
 
 // 레시피 스키마 (모든 정규식은 문자열):
 // {
@@ -71,11 +71,13 @@ export function applyRecipe(html, R, range = {}) {
       if (!name) continue;
       const statusText = R.statusScope === "group" ? m[R.statusGroup || 2] : m[0];
       const info = classify(statusText, R);
+      const fish = detectFish(m[0]);
       const ymd = iso.replace(/-/g, "");
       const url = (R.bookingUrl || "").replace(/\{ymd\}/g, ymd).replace(/\{iso\}/g, iso);
-      if (!acc.boats.has(name)) acc.boats.set(name, { name, fish: "" });
+      if (!acc.boats.has(name)) acc.boats.set(name, { name, fish });
+      else if (fish && !acc.boats.get(name).fish) acc.boats.get(name).fish = fish;
       acc.byDate[iso] ||= {};
-      acc.byDate[iso][name] = { ...info, url: url || undefined };
+      acc.byDate[iso][name] = { ...info, url: url || undefined, fish };
     }
   }
   return finish(acc, range);

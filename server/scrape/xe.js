@@ -1,6 +1,6 @@
 // XpressEngine 예약 모듈(reservation_boat_v5.2) 어댑터 — 칸피싱·제일낚시 등.
 // 한 달 목록 페이지 + more.php 페이지네이션으로 날짜별·배별 잔여석을 읽는다.
-import { httpGet, unescapeHtml, stripTags } from "./http.js";
+import { httpGet, unescapeHtml, stripTags, detectFish } from "./http.js";
 
 const BOAT_RE =
   /<span style="font-size:15px;\s*font-weight:bold;[^"]*">([\s\S]*?)<\/span>([\s\S]*?)<div id="admin-right-(\d{8})-(\d+)-0">([\s\S]*?)<\/div>/g;
@@ -37,12 +37,13 @@ function parseSections(html, origin, modDir, acc) {
       const uid = m[4];
       const info = classify(m[5]);
       const fishM = between.match(/alt="낚시종류"[\s\S]*?padding-left:5px;">\s*([^<]+?)\s*<\/td>/);
-      const fish = fishM ? fishM[1].replace(/낚시$/, "").trim() : "";
+      const hint = fishM ? fishM[1].replace(/낚시/g, "").trim() : "";
+      const fish = detectFish(between, hint);
       if (!acc.boats.has(uid)) acc.boats.set(uid, { name, fish });
       else if (fish && !acc.boats.get(uid).fish) acc.boats.get(uid).fish = fish;
       const url = `${origin}/_core/module/${modDir}/popup.step1.php?date=${ymd}&PA_N_UID=${uid}`;
       acc.byDate[iso] ||= {};
-      acc.byDate[iso][uid] = { ...info, url };
+      acc.byDate[iso][uid] = { ...info, url, fish };
     }
   }
 }

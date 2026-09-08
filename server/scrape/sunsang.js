@@ -1,5 +1,5 @@
 // sunsang24 선단 스케줄(schedule_fleet) 어댑터 — 동양낚시 등.
-import { httpGet, stripTags } from "./http.js";
+import { httpGet, stripTags, detectFish } from "./http.js";
 
 function monthsBetween(fromIso, toIso) {
   const out = [];
@@ -65,13 +65,16 @@ export async function scrapeSunsang(site, { fromIso, toIso }) {
       const nameM = block.match(/<div class="title">\s*([^<]+?)\s*<\/div>/);
       const name = nameM ? stripTags(nameM[1]) : `선박${shipNo}`;
       const fishM = block.match(/<div id="fish">\s*([^<]+?)\s*<\/div>/);
-      let fish = fishM ? fishM[1].trim() : "";
-      if (/출조안내|미정|준비/.test(fish)) fish = "";
+      let hint = fishM ? fishM[1].trim() : "";
+      if (/출조안내|미정|준비|안내/.test(hint)) hint = "";
+      // 공지사항(editor_memo) + 낚시종류(#fish) 를 함께 보고 어종 판정
+      const memo = (block.match(/editor_memo_pc">([\s\S]{0,800})/) || [])[1] || "";
+      const fish = detectFish(memo + " " + hint.replace(/,/g, " "), hint);
       if (!acc.boats.has(shipNo)) acc.boats.set(shipNo, { name, fish });
       else if (fish && !acc.boats.get(shipNo).fish) acc.boats.get(shipNo).fish = fish;
       if (/마트|낚시마트/.test(name)) continue; // 선박 아님(낚시점)
       acc.byDate[iso] ||= {};
-      acc.byDate[iso][shipNo] = { ...parseUnit(block), url: boatUrl(shipNo) };
+      acc.byDate[iso][shipNo] = { ...parseUnit(block), url: boatUrl(shipNo), fish };
     }
   }
 

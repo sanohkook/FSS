@@ -189,20 +189,20 @@
 
     var boats = visibleBoats();
     el.cols.innerHTML =
-      '<col class="c-w-date"><col class="c-w-mul"><col class="c-w-flow">' +
+      '<col class="c-w-date"><col class="c-w-mul"><col class="c-w-flow"><col class="c-w-fish">' +
       boats.map(function () { return '<col class="c-w-boat">'; }).join("");
 
     el.head.innerHTML =
-      '<tr><th class="c-date">날짜</th><th class="c-mul">물때</th><th class="c-flow">조류</th>' +
+      '<tr><th class="c-date">날짜</th><th class="c-mul">물때</th><th class="c-flow">조류</th><th class="c-fish">어종</th>' +
       boats.map(function (bt) {
         return '<th class="boat-h" data-boat="' + esc(bt.id) + '" title="' + esc(bt.site) + " · " + esc(bt.name) + '">' +
           '<span class="bn">' + esc(bt.name) + "</span></th>";
       }).join("") +
       "</tr>";
 
-    // 표 전체 폭 = 고정 3열(198) + 배 수 × 112  (열폭 고정, 배만큼만 넓어짐)
+    // 표 전체 폭 = 고정 4열(270) + 배 수 × 112  (열폭 고정, 배만큼만 넓어짐)
     var tbl = el.head.closest("table");
-    if (tbl) tbl.style.width = 198 + boats.length * 112 + "px";
+    if (tbl) tbl.style.width = 270 + boats.length * 112 + "px";
 
     var mine = planSet();
     var shownRows = b.rows.filter(function (r) {
@@ -221,7 +221,7 @@
       var sep = "";
       if (r.date.slice(0, 7) !== curMonth) {
         curMonth = r.date.slice(0, 7);
-        sep = '<tr class="mrow"><td colspan="' + (3 + boats.length) + '">' +
+        sep = '<tr class="mrow"><td colspan="' + (4 + boats.length) + '">' +
           curMonth.slice(0, 4) + "년 " + +curMonth.slice(5, 7) + "월</td></tr>";
       }
       var wd = r.weekday;
@@ -252,6 +252,8 @@
       } else {
         h += '<td class="c-flow">&mdash;</td>';
       }
+
+      h += '<td class="c-fish">' + (r.fish ? '<span class="fish">' + esc(r.fish) + "</span>" : "&mdash;") + "</td>";
 
       h += boats.map(function (bt) {
         var c = r.cells[bt.id];
@@ -287,7 +289,7 @@
     }).join("");
 
     el.body.innerHTML = rowsHtml ||
-      '<tr><td class="empty" colspan="' + (3 + boats.length) + '">이 달 데이터가 없습니다.</td></tr>';
+      '<tr><td class="empty" colspan="' + (4 + boats.length) + '">이 달 데이터가 없습니다.</td></tr>';
 
     // 엑셀 틀고정: 실제 열 너비를 재서 sticky 오프셋 설정
     requestAnimationFrame(function () {
@@ -295,9 +297,11 @@
       if (!hr) return;
       var d = hr.children[0].getBoundingClientRect().width;
       var m = hr.children[1].getBoundingClientRect().width;
+      var fl = hr.children[2].getBoundingClientRect().width;
       var tbl = el.head.closest("table");
       tbl.style.setProperty("--sticky-mul", d + "px");
       tbl.style.setProperty("--sticky-flow", (d + m) + "px");
+      tbl.style.setProperty("--sticky-fish", (d + m + fl) + "px");
       // 배가 늘었으면(사이트 추가 등) 새 열이 보이도록 오른쪽 끝으로
       var sc = document.querySelector(".scroller");
       if (sc && state._boatN != null && boats.length > state._boatN) sc.scrollLeft = sc.scrollWidth;
