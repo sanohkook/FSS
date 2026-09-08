@@ -44,14 +44,26 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradle
 
 ```bash
 cd android
-./release.sh 2.3        # versionCode 자동 +1, versionName 2.3, 서명 빌드 + 태그 push
-# gh CLI 미인증이면 안내대로 https://github.com/sanohkook/FSS/releases 에서 수동 생성
+./release.sh 2.4        # versionCode 자동 +1, versionName 2.4, 커밋 + 태그 push
 ```
+
+→ `vX.Y` 태그가 올라가면 **GitHub Actions**(`.github/workflows/release.yml`)가 서명 APK 를
+빌드해 릴리스를 자동 발행한다. 진행: <https://github.com/sanohkook/FSS/actions>
+
+Actions 최초 1회 설정 — 저장소 **Settings → Secrets and variables → Actions** 에 4개 등록:
+
+| Secret | 값 |
+|---|---|
+| `KEYSTORE_B64` | `base64 -i android/fss-release.jks \| pbcopy` 결과 (한 줄) |
+| `KEYSTORE_PASSWORD` | `keystore.properties` 의 `storePassword` |
+| `KEY_ALIAS` | `fss` |
+| `KEY_PASSWORD` | `keystore.properties` 의 `keyPassword` |
 
 - 서명 키: `android/fss-release.jks` + `android/keystore.properties` (git 제외).
   **분실하면 이후 업데이트 영구 불가** — 별도 안전한 곳에 백업할 것.
 - 릴리스 규칙: 태그 `vX.Y`, 자산으로 `app-release.apk` 하나.
 - 첫 배포 APK 부터 이 키로 서명해야 이후 인앱 업데이트가 됨(디버그 설치본 위에는 덮어쓰기 불가 → 재설치).
+- 로컬 빌드만: `./release.sh 2.4 --build`
 
 ## 구조 (server/ ↔ android/)
 

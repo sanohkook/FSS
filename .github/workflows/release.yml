@@ -1,0 +1,50 @@
+name: Release APK
+
+# vX.Y 태그가 push 되면 서명된 release APK 를 빌드해 GitHub Release 로 발행한다.
+# 앱의 "업그레이드" 버튼이 이 릴리스를 읽는다.
+#
+# 필요한 저장소 Secrets (Settings → Secrets and variables → Actions):
+#   KEYSTORE_B64      : base64 -i android/fss-release.jks   결과 한 줄
+#   KEYSTORE_PASSWORD : keystore.properties 의 storePassword
+#   KEY_ALIAS         : fss
+#   KEY_PASSWORD      : keystore.properties 의 keyPassword
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Restore signing key
+        run: |
+          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > android/fss-release.jks
+          cat > android/keystore.properties <<EOF
+          storeFile=fss-release.jks
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Build signed APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/release/app-release.apk
+          generate_release_notes: true
