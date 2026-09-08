@@ -113,20 +113,30 @@ button[disabled] { opacity: .5; cursor: default; }
 .tabs button { border-radius: 999px; padding: 6px 14px; font-size: 13px; }
 .tabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 
-.boatbar {
-  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-  padding: 4px 2px 12px;
+.boatbar { padding: 4px 2px 14px; }
+.bb-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.bb-head .bb-label { font-size: 11px; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; }
+.bb-head .bb-count { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.bb-grid {
+  display: grid; grid-template-columns: max-content 1fr;
+  gap: 6px 12px; align-items: start;
 }
-.boatbar .bb-label { font-size: 11px; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; margin-right: 4px; }
-.boatbar .bb-site { display: inline-flex; align-items: center; gap: 4px; padding-left: 6px; margin-left: 2px; border-left: 1px solid var(--line); }
-.boatbar .bb-site:first-of-type { border-left: none; }
-.boatbar .bb-site > span { font-size: 10.5px; color: var(--ink-3); }
+.bb-sitename {
+  display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+  font-size: 12px; font-weight: 600; color: var(--ink-2); padding-top: 3px; white-space: nowrap;
+}
+.bb-sitename::after { content: ":"; color: var(--ink-3); margin-left: -3px; }
+.bb-all {
+  border: none; background: none; padding: 0 2px; font-size: 10.5px; color: var(--ink-3);
+  font-weight: 500; border-radius: 4px;
+}
+.bb-all:hover { color: var(--accent); border: none; }
+.bb-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .bb-chip {
   padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 500;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
 }
 .bb-chip[aria-pressed="false"] { color: var(--ink-3); background: var(--surface-2); text-decoration: line-through; opacity: .7; }
-.bb-chip.mini { padding: 2px 8px; font-size: 11px; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 0 2px 14px; font-size: 11.5px; color: var(--ink-2); }
 .legend .grp { display: flex; align-items: center; gap: 6px; }

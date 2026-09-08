@@ -95,15 +95,16 @@
       if (!g) { g = { site: b.site, boats: [] }; bySite.push(g); }
       g.boats.push(b);
     });
-    var h = '<span class="bb-label">배 표시 ' + vis + "/" + boats.length + "</span>";
-    h += bySite.map(function (g) {
+    var h = '<div class="bb-head"><span class="bb-label">배 표시</span>' +
+      '<span class="bb-count">' + vis + " / " + boats.length + "</span></div>";
+    h += '<div class="bb-grid">' + bySite.map(function (g) {
       var allHidden = g.boats.every(function (b) { return hidden.has(b.id); });
-      return '<span class="bb-site"><span>' + esc(g.site) + "</span>" +
-        '<button class="bb-chip mini" data-site-toggle="' + esc(g.site) + '">' + (allHidden ? "전체" : "해제") + "</button>" +
-        g.boats.map(function (b) {
+      return '<div class="bb-sitename">' + esc(g.site) +
+        '<button class="bb-all" data-site-toggle="' + esc(g.site) + '">' + (allHidden ? "＋전체" : "－해제") + "</button></div>" +
+        '<div class="bb-chips">' + g.boats.map(function (b) {
           return '<button class="bb-chip" data-boat-toggle="' + esc(b.id) + '" aria-pressed="' + (!hidden.has(b.id)) + '">' + esc(b.name) + "</button>";
-        }).join("") + "</span>";
-    }).join("");
+        }).join("") + "</div>";
+    }).join("") + "</div>";
     el.boatbar.innerHTML = h;
     el.boatbar.querySelectorAll("[data-boat-toggle]").forEach(function (btn) {
       btn.onclick = function () {
