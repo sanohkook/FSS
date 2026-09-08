@@ -304,9 +304,10 @@
       var fpct = r.flow != null ? Math.max(0, Math.min(100, r.flow)) : 0;
       var fnum = r.flow == null ? "" : r.est ? "≈" + r.flow
         : r.flowLabel === "최대" ? "최대" : r.flowLabel === "최소" ? "최소" : String(r.flow);
-      h += '<td class="c-mul" style="--f:' + fpct + '%" title="조류 세기 ' + esc(r.flowLabel || "") + '">' +
-        (r.mul
-          ? '<span class="mul ' + mt + '">' + esc(r.mul) + (r.mulTier === "sari" ? "사리" : "") + "</span>"
+      var mulTxt = r.mulTier === "sari" ? "사리" : r.mul;
+      h += '<td class="c-mul" style="--f:' + fpct + '%" title="' + esc(r.mul || "") + " · 조류 " + esc(r.flowLabel || "") + '">' +
+        (mulTxt
+          ? '<span class="mul ' + mt + '">' + esc(mulTxt) + "</span>"
           : "&mdash;") +
         (fnum ? '<span class="fnum' + (r.est ? " est" : "") + '">' + esc(fnum) + "</span>" : "") +
         "</td>";
