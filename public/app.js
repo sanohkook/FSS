@@ -258,8 +258,8 @@
 
     // 표 전체 폭 = 앞 2열(날짜·물때) + 배 수 × 열폭 (모바일에서 더 좁게)
     var mobile = window.matchMedia("(max-width: 640px)").matches;
-    var FROZEN_W = mobile ? 92 : 138;
-    var BOAT_W = mobile ? 92 : 112;
+    var FROZEN_W = mobile ? 86 : 138;
+    var BOAT_W = mobile ? 88 : 112;
     var tbl = el.head.closest("table");
     if (tbl) tbl.style.width = FROZEN_W + boats.length * BOAT_W + "px";
 
