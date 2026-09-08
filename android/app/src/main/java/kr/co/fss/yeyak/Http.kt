@@ -17,8 +17,9 @@ import javax.net.ssl.X509TrustManager
  * 공개 읽기 전용 페이지에 한해 검증 없이 가져온다. (server/scrape/http.js 와 동일 취지)
  */
 object Http {
+    // sunsang24 는 모바일 UA 에 다른(축약) HTML 을 준다 → 데스크톱 호환 UA 고정
     private const val UA =
-        "Mozilla/5.0 (Linux; Android) FSS-tide-board/2.0 (+https://github.com/sanohkook/FSS)"
+        "Mozilla/5.0 (compatible; FSS-tide-board/2.0; +https://github.com/sanohkook/FSS)"
 
     private val insecureSsl: javax.net.ssl.SSLSocketFactory by lazy {
         val tm = object : X509TrustManager {

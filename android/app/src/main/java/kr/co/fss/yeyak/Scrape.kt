@@ -139,7 +139,7 @@ object Scrape {
     }
 
     // ---------- sunsang24 (동양낚시) ----------
-    private val SS_UNIT = Regex("<table class=\"[^\"]*ship_unit_ship_no_(\\d+)[^\"]*\"[\\s\\S]*?<!--\\s*해당날자 선박 끝\\s*-->")
+    private val SS_UNIT_START = Regex("<table class=\"[^\"]*ship_unit_ship_no_(\\d+)[^\"]*\"")
 
     private fun ssParseUnit(block: String): Triple<String, Int?, Int?> {
         if (block.contains("data-status_code=\"END\"") || block.contains("예약마감")) {
@@ -166,9 +166,13 @@ object Scrape {
             val res = try { Http.get(url) } catch (e: Exception) {
                 acc.errors.add("${site.getString("id")} $y-$m: ${e.message}"); continue
             }
-            for (u in SS_UNIT.findAll(res.text)) {
-                val block = u.value
-                val shipNo = u.groupValues[1]
+            // 배 블록 = ship_unit 테이블 시작 ~ 다음 시작(또는 끝). 종료 주석에 의존하지 않음.
+            val starts = SS_UNIT_START.findAll(res.text).toList()
+            for (idx in starts.indices) {
+                val shipNo = starts[idx].groupValues[1]
+                val from = starts[idx].range.first
+                val to = if (idx + 1 < starts.size) starts[idx + 1].range.first else res.text.length
+                val block = res.text.substring(from, to)
                 val sd = Regex("data-sdate=\"(\\d{4}-\\d{2}-\\d{2})\"").find(block) ?: continue
                 val iso = sd.groupValues[1]
                 val ymd = iso.replace("-", "")

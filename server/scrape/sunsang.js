@@ -53,10 +53,13 @@ export async function scrapeSunsang(site, { fromIso, toIso }) {
       acc.errors.push(`${site.id} ${mk}: ${e.message}`);
       continue;
     }
-    const units = [...res.text.matchAll(/<table class="[^"]*ship_unit_ship_no_(\d+)[^"]*"[\s\S]*?<!--\s*해당날자 선박 끝\s*-->/g)];
-    for (const u of units) {
-      const block = u[0];
-      const shipNo = u[1];
+    // 배 블록 = ship_unit 테이블 시작 ~ 다음 시작(또는 끝). 종료 주석에 의존하지 않음.
+    const starts = [...res.text.matchAll(/<table class="[^"]*ship_unit_ship_no_(\d+)[^"]*"/g)];
+    for (let i = 0; i < starts.length; i++) {
+      const shipNo = starts[i][1];
+      const from = starts[i].index;
+      const to = i + 1 < starts.length ? starts[i + 1].index : res.text.length;
+      const block = res.text.slice(from, to);
       const sd = block.match(/data-sdate="(\d{4}-\d{2}-\d{2})"/);
       if (!sd) continue;
       const iso = sd[1];
