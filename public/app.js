@@ -303,7 +303,7 @@
         : r.flowLabel === "최대" ? "최대" : r.flowLabel === "최소" ? "최소" : String(r.flow);
       h += '<td class="c-mul" style="--f:' + fpct + '%" title="조류 세기 ' + esc(r.flowLabel || "") + '">' +
         (r.mul
-          ? '<span class="mul ' + mt + '">' + esc(r.mul) + (r.mulTier === "sari" ? '<span class="tag">사리</span>' : "") + "</span>"
+          ? '<span class="mul ' + mt + '">' + esc(r.mul) + (r.mulTier === "sari" ? "사리" : "") + "</span>"
           : "&mdash;") +
         (fnum ? '<span class="fnum' + (r.est ? " est" : "") + '">' + esc(fnum) + "</span>" : "") +
         "</td>";

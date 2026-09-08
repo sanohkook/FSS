@@ -248,11 +248,11 @@ td.c-date.sun .wd { color: var(--sun); }
 td.c-date .lun { display: block; font-size: 10.5px; color: var(--ink-3); }
 
 .mul {
-  display: inline-flex; align-items: baseline; gap: 4px; padding: 2px 8px; border-radius: 6px;
+  display: inline-flex; align-items: baseline; gap: 0; padding: 2px 8px; border-radius: 6px;
   font-weight: 600; font-size: 12.5px; white-space: nowrap;
   background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line-2);
 }
-.mul .tag { font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--on-accent); }
+.mul .tag { font-size: 10px; font-weight: 700; padding: 0 4px; border-radius: 999px; background: var(--accent); color: var(--on-accent); }
 .mul.t-sari { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .mul.t-mid { background: var(--accent-soft); color: var(--accent-deep); border-color: color-mix(in srgb, var(--accent) 25%, transparent); }
 
