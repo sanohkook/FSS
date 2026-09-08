@@ -149,16 +149,27 @@
     try { v ? localStorage.setItem("ijb.flowMax", String(v)) : localStorage.removeItem("ijb.flowMax"); } catch (e) {}
     render();
   }
+  var seatOnly = (function () {
+    try { return localStorage.getItem("ijb.seatOnly") === "1"; } catch (e) { return false; }
+  })();
+  function setSeatOnly(v) {
+    seatOnly = v;
+    try { v ? localStorage.setItem("ijb.seatOnly", "1") : localStorage.removeItem("ijb.seatOnly"); } catch (e) {}
+    render();
+  }
   function renderFlowBar() {
     var h = '<span class="bb-label">조류 세기</span>' +
       '<button class="bb-chip" data-flow="0" aria-pressed="' + (flowMax === 0) + '">전체</button>' +
       FLOW_STEPS.map(function (s) {
         return '<button class="bb-chip" data-flow="' + s + '" aria-pressed="' + (flowMax === s) + '">' + s + "% 이하</button>";
-      }).join("");
+      }).join("") +
+      '<span class="bb-sep"></span>' +
+      '<button class="bb-chip" data-seatonly aria-pressed="' + seatOnly + '">잔여석 있는 날만</button>';
     el.flowbar.innerHTML = h;
     el.flowbar.querySelectorAll("[data-flow]").forEach(function (btn) {
       btn.onclick = function () { setFlowMax(Number(btn.getAttribute("data-flow"))); };
     });
+    el.flowbar.querySelector("[data-seatonly]").onclick = function () { setSeatOnly(!seatOnly); };
   }
 
   function planKey(d, id) { return d + "|" + id; }
@@ -199,7 +210,17 @@
       "</tr>";
 
     var mine = planSet();
-    var shownRows = b.rows.filter(function (r) { return !flowMax || (r.flow != null && r.flow <= flowMax); });
+    var shownRows = b.rows.filter(function (r) {
+      if (flowMax && !(r.flow != null && r.flow <= flowMax)) return false;
+      if (seatOnly) {
+        var any = boats.some(function (bt) {
+          var c = r.cells[bt.id];
+          return c && (c.status === "open" || c.status === "few");
+        });
+        if (!any) return false;
+      }
+      return true;
+    });
     var rowsHtml = shownRows.map(function (r) {
       var wd = r.weekday;
       var cls = [];
