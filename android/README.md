@@ -1,24 +1,20 @@
-# 예약현황 — 안드로이드 앱
+# 예약현황 — 안드로이드 앱 (맥 없이 단독 동작)
 
-맥에서 도는 예약현황 웹서버(`npm start`)를 폰에서 앱처럼 여는 WebView 래퍼입니다.
-스크레이핑·데이터는 서버가 담당하고, 앱은 그 화면을 보여주기만 합니다.
+앱 하나로 끝. 맥/서버 필요 없습니다.
 
-- 의존성 없음(순수 `android.webkit.WebView`), APK ≈ 0.8MB
-- 패키지 `kr.co.fss.yeyak`, minSdk 24(안드로이드 7)+, targetSdk 36
+앱이 내부에서 작은 HTTP 서버(NanoHTTPD)를 띄우고, 웹 프런트엔드를 WebView 로 엽니다.
+예약 사이트 조회·물때 계산·저장은 전부 앱이 처리합니다 (`server/` 로직을 Kotlin 으로 포팅).
 
-## 준비
+- 패키지 `kr.co.fss.yeyak`, minSdk 24(안드로이드 7)+, APK ≈ 1MB
+- 인터넷 권한만 사용. 개인정보 수집·전송 없음.
+- 물때·조류: `data/tide.json`(국립해양조사원, 2026–2027)을 에셋으로 번들
+- 예약 현황: 앱이 칸피싱·제일낚시·동양낚시 등을 직접 조회 (같은 규칙, 토큰 0)
+- 설정(사이트 추가/삭제)·나의 예약: 앱 내부 저장소
 
-1. 맥과 폰이 **같은 와이파이**에 있어야 합니다.
-2. 맥에서 서버 실행:
-   ```bash
-   npm start
-   ```
-   콘솔에 `폰에서:  http://192.168.x.x:3300` 이 찍힙니다 — 이 주소를 앱에 입력합니다.
-
-## APK 빌드
+## 빌드
 
 ### Android Studio
-`android/` 폴더를 열고(File → Open) → Run ▶. 첫 실행 시 서버 주소를 물어봅니다.
+`android/` 열고(File → Open) → Run ▶.
 
 ### 명령줄
 ```bash
@@ -26,21 +22,34 @@ cd android
 JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug
 # → app/build/outputs/apk/debug/app-debug.apk
 ```
-폰에 설치:
+설치:
 ```bash
 ~/Library/Android/sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
-또는 APK 파일을 폰으로 보내서 직접 설치(“출처를 알 수 없는 앱” 허용 필요).
+또는 APK 를 폰으로 보내 직접 설치("출처를 알 수 없는 앱" 허용).
 
 ## 사용
 
-- 첫 실행: 서버 주소 입력 (예 `http://192.168.8.53:3300`)
-- 메뉴(⋮) → **새로고침** / **서버 주소** 변경
-- 예약 셀을 누르면 해당 배 예약 페이지가 기본 브라우저로 열립니다
-- 뒤로가기 = 웹뷰 뒤로
+- 앱을 열면 바로 이번 달~12월 예약현황이 뜹니다.
+- **갱신** 버튼 → 예약 사이트 재조회 (30초~2분, 셀 개수만큼).
+- 예약 셀 클릭 → 해당 배 예약 페이지가 기본 브라우저로.
+- ☆ → 나의 예약 저장. **설정·배 추가** → 사이트 관리.
+- 메뉴(⋮) → 다시 불러오기.
 
-## 한계 / 다음 단계
+## 구조 (server/ ↔ android/)
 
-- 맥 서버가 꺼져 있으면 앱도 동작하지 않습니다(연결 오류 화면).
-- 집 밖에서 쓰려면: 서버를 Tailscale/Cloudflare Tunnel 등으로 노출하고 그 주소를 앱에 입력.
-- Play 스토어 배포(TWA)를 원하면 서버에 HTTPS 도메인이 필요합니다.
+| 서버(Node) | 앱(Kotlin) |
+|---|---|
+| `server/scrape/http.js` | `Http.kt` · `Fish.kt` |
+| `server/scrape/xe.js` · `sunsang.js` | `Scrape.kt` |
+| `server/tide.js` (+ 공휴일) | `Tide.kt` |
+| `server/index.js` `/api/board` | `Board.kt` |
+| `server/index.js` 라우트 | `LocalServer.kt` (NanoHTTPD) |
+| `server/store.js`, `data/*.json` | `Store.kt` (앱 내부 저장소) |
+| `public/` | 에셋으로 그대로 번들 (빌드 시 `syncAssets` 태스크가 복사) |
+
+## 안 되는 것
+
+- **AI 파싱 레시피**: 앱에는 없음. 칸피싱·제일낚시 계열(XE)·`sunsang24` 계열이 아닌 사이트는
+  링크 전용(X 표시)으로만 추가됩니다.
+- **바다타임/KHOA 물때 재조회**: 앱은 번들 데이터(2027년 12월까지)만 사용.
