@@ -200,6 +200,10 @@
       }).join("") +
       "</tr>";
 
+    // 표 전체 폭 = 고정 3열(198) + 배 수 × 112  (열폭 고정, 배만큼만 넓어짐)
+    var tbl = el.head.closest("table");
+    if (tbl) tbl.style.width = 198 + boats.length * 112 + "px";
+
     var mine = planSet();
     var shownRows = b.rows.filter(function (r) {
       if (flowMax && !(r.flow != null && r.flow <= flowMax)) return false;
@@ -294,7 +298,6 @@
       var tbl = el.head.closest("table");
       tbl.style.setProperty("--sticky-mul", d + "px");
       tbl.style.setProperty("--sticky-flow", (d + m) + "px");
-      tbl.style.width = 60 + 76 + 62 + boats.length * 112 + "px";
       // 배가 늘었으면(사이트 추가 등) 새 열이 보이도록 오른쪽 끝으로
       var sc = document.querySelector(".scroller");
       if (sc && state._boatN != null && boats.length > state._boatN) sc.scrollLeft = sc.scrollWidth;
