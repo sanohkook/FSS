@@ -1,5 +1,6 @@
 import express from "express";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import {
   getSites,
@@ -220,5 +221,16 @@ app.delete("/api/myplan/:date/:boatId", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`인천 물때 예약판 → http://localhost:${PORT}`);
+  console.log(`예약현황 → http://localhost:${PORT}`);
+  // 같은 와이파이의 폰(안드로이드 앱)에서 접속할 주소
+  try {
+    const nets = os.networkInterfaces();
+    for (const list of Object.values(nets)) {
+      for (const ni of list || []) {
+        if (ni.family === "IPv4" && !ni.internal) console.log(`  폰에서:  http://${ni.address}:${PORT}`);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
 });

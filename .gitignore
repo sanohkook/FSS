@@ -4,3 +4,13 @@ scratchpad_*
 node_modules/
 *.log
 data/avail.json
+
+# Android
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/captures/
+*.apk
+*.aab
