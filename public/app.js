@@ -9,8 +9,7 @@
     prevM: document.getElementById("prevM"),
     nextM: document.getElementById("nextM"),
     tabs: document.getElementById("tabs"),
-    boatbar: document.getElementById("boatbar"),
-    flowbar: document.getElementById("flowbar"),
+    filterbar: document.getElementById("filterbar"),
     cols: document.getElementById("gridCols"),
     head: document.getElementById("gridHead"),
     body: document.getElementById("gridBody"),
@@ -108,82 +107,23 @@
   function visibleBoats() {
     return (state.board.boats || []).filter(function (b) { return !hidden.has(b.id); });
   }
-  // 배 선택 = 슬림 버튼 → 팝업. 메인 화면엔 버튼만.
-  function renderBoatBar() {
-    var boats = state.board.boats || [];
-    var vis = boats.length - boats.filter(function (b) { return hidden.has(b.id); }).length;
-    el.boatbar.innerHTML =
-      '<button class="bb-open" data-open-boats>선박 선택 <b>' + vis + " / " + boats.length + "</b></button>";
-    el.boatbar.querySelector("[data-open-boats]").onclick = openBoatPicker;
-  }
   function bySiteGroups() {
-    var boats = state.board.boats || [];
     var g = [];
-    boats.forEach(function (b) {
+    (state.board.boats || []).forEach(function (b) {
       var s = g.filter(function (x) { return x.site === b.site; })[0];
       if (!s) { s = { site: b.site, boats: [] }; g.push(s); }
       s.boats.push(b);
     });
     return g;
   }
-  function openBoatPicker() {
-    var p = document.createElement("div");
-    p.className = "panel sheet";
-    p.innerHTML =
-      '<div class="panel-head"><h2>선박 선택</h2><button class="icon-btn" data-close>✕</button></div>' +
-      '<div class="panel-body" id="bpBody"></div>' +
-      '<div class="panel-foot">' +
-      '<button data-all="show">전체 선택</button><button data-all="hide">전체 해제</button>' +
-      '<button class="btn-primary" data-close>완료</button></div>';
-    openOverlay("right", p);
-    p.querySelectorAll("[data-close]").forEach(function (b) { b.onclick = closeOverlay; });
-    p.querySelector('[data-all="show"]').onclick = function () {
-      hidden.clear(); saveHidden(); render(); drawBoatPicker(p);
-    };
-    p.querySelector('[data-all="hide"]').onclick = function () {
-      (state.board.boats || []).forEach(function (b) { hidden.add(b.id); });
-      saveHidden(); render(); drawBoatPicker(p);
-    };
-    drawBoatPicker(p);
-  }
-  function drawBoatPicker(p) {
-    var body = p.querySelector("#bpBody");
-    body.innerHTML = '<div class="bb-grid">' + bySiteGroups().map(function (g) {
-      var allHidden = g.boats.every(function (b) { return hidden.has(b.id); });
-      return '<div class="bb-sitename">' + esc(g.site) +
-        '<button class="bb-all" data-site-toggle="' + esc(g.site) + '">' + (allHidden ? "＋전체" : "－해제") + "</button></div>" +
-        '<div class="bb-chips">' + g.boats.map(function (b) {
-          return '<button class="bb-chip" data-boat-toggle="' + esc(b.id) + '" aria-pressed="' + (!hidden.has(b.id)) + '">' + esc(b.name) + "</button>";
-        }).join("") + "</div>";
-    }).join("") + "</div>";
-    body.querySelectorAll("[data-boat-toggle]").forEach(function (btn) {
-      btn.onclick = function () {
-        var id = btn.getAttribute("data-boat-toggle");
-        hidden.has(id) ? hidden.delete(id) : hidden.add(id);
-        saveHidden(); render(); drawBoatPicker(p);
-      };
-    });
-    body.querySelectorAll("[data-site-toggle]").forEach(function (btn) {
-      btn.onclick = function () {
-        var site = btn.getAttribute("data-site-toggle");
-        var gb = (state.board.boats || []).filter(function (b) { return b.site === site; });
-        var allHidden = gb.every(function (b) { return hidden.has(b.id); });
-        gb.forEach(function (b) { allHidden ? hidden.delete(b.id) : hidden.add(b.id); });
-        saveHidden(); render(); drawBoatPicker(p);
-      };
-    });
-  }
 
-  // ---------- 조류 세기 필터 (per browser) ----------
-  // 선택한 % 이하인 날짜만 표시(약한 물 찾기). 임계값 30 / 50 / 70 / 80.
-  var FLOW_STEPS = [30, 50, 70, 80];
+  // ---------- 검색 조건 (예약 가능 · 조류 세기 · 선박) — 팝업 하나로 ----------
   var flowMax = (function () {
     try { return Number(localStorage.getItem("ijb.flowMax")) || 0; } catch (e) { return 0; }
   })();
   function setFlowMax(v) {
     flowMax = v;
     try { v ? localStorage.setItem("ijb.flowMax", String(v)) : localStorage.removeItem("ijb.flowMax"); } catch (e) {}
-    render();
   }
   var seatOnly = (function () {
     try { return localStorage.getItem("ijb.seatOnly") === "1"; } catch (e) { return false; }
@@ -191,14 +131,75 @@
   function setSeatOnly(v) {
     seatOnly = v;
     try { v ? localStorage.setItem("ijb.seatOnly", "1") : localStorage.removeItem("ijb.seatOnly"); } catch (e) {}
-    render();
   }
-  function renderFlowBar() {
-    el.flowbar.innerHTML =
-      '<button class="bb-chip" data-flow70 aria-pressed="' + (flowMax === 70) + '">조류 70% 이하</button>' +
-      '<button class="bb-chip" data-seatonly aria-pressed="' + seatOnly + '">예약 가능</button>';
-    el.flowbar.querySelector("[data-flow70]").onclick = function () { setFlowMax(flowMax === 70 ? 0 : 70); };
-    el.flowbar.querySelector("[data-seatonly]").onclick = function () { setSeatOnly(!seatOnly); };
+
+  // 메인 화면: '검색 조건' 버튼 + 활성 조건 요약
+  function renderFilterBar() {
+    var boats = state.board.boats || [];
+    var vis = boats.length - boats.filter(function (b) { return hidden.has(b.id); }).length;
+    var tags = [];
+    if (seatOnly) tags.push("예약 가능");
+    if (flowMax) tags.push("조류≤" + flowMax);
+    tags.push("선박 " + vis + "/" + boats.length);
+    el.filterbar.innerHTML =
+      '<button class="bb-open" data-open-filters>🔍 검색 조건 <b>' + esc(tags.join(" · ")) + "</b></button>";
+    el.filterbar.querySelector("[data-open-filters]").onclick = openFilters;
+  }
+
+  function openFilters() {
+    var p = document.createElement("div");
+    p.className = "panel sheet";
+    p.innerHTML =
+      '<div class="panel-head"><h2>검색 조건</h2><button class="icon-btn" data-close>✕</button></div>' +
+      '<div class="panel-body" id="fltBody"></div>' +
+      '<div class="panel-foot"><button class="btn-primary" data-close>완료</button></div>';
+    openOverlay("right", p);
+    p.querySelectorAll("[data-close]").forEach(function (b) { b.onclick = closeOverlay; });
+    drawFilters(p);
+  }
+  function drawFilters(p) {
+    var body = p.querySelector("#fltBody");
+    var boats = state.board.boats || [];
+    var vis = boats.length - boats.filter(function (b) { return hidden.has(b.id); }).length;
+    body.innerHTML =
+      '<div class="flt-sec">' +
+      '<button class="bb-chip" data-seatonly aria-pressed="' + seatOnly + '">예약 가능한 날만</button>' +
+      "</div>" +
+      '<div class="flt-sec"><span class="flt-h">조류 세기</span>' +
+      '<button class="bb-chip" data-flow70 aria-pressed="' + (flowMax === 70) + '">70% 이하만</button>' +
+      "</div>" +
+      '<div class="flt-sec"><span class="flt-h">선박 <b>' + vis + " / " + boats.length + "</b>" +
+      '<button class="bb-all" data-all="show">전체</button><button class="bb-all" data-all="hide">해제</button></span>' +
+      '<div class="bb-grid">' + bySiteGroups().map(function (g) {
+        var allHidden = g.boats.every(function (b) { return hidden.has(b.id); });
+        return '<div class="bb-sitename">' + esc(g.site) +
+          '<button class="bb-all" data-site-toggle="' + esc(g.site) + '">' + (allHidden ? "＋전체" : "－해제") + "</button></div>" +
+          '<div class="bb-chips">' + g.boats.map(function (b) {
+            return '<button class="bb-chip" data-boat-toggle="' + esc(b.id) + '" aria-pressed="' + (!hidden.has(b.id)) + '">' + esc(b.name) + "</button>";
+          }).join("") + "</div>";
+      }).join("") + "</div></div>";
+
+    var redraw = function () { saveHidden(); render(); drawFilters(p); };
+    body.querySelector("[data-seatonly]").onclick = function () { setSeatOnly(!seatOnly); render(); drawFilters(p); };
+    body.querySelector("[data-flow70]").onclick = function () { setFlowMax(flowMax === 70 ? 0 : 70); render(); drawFilters(p); };
+    body.querySelector('[data-all="show"]').onclick = function () { hidden.clear(); redraw(); };
+    body.querySelector('[data-all="hide"]').onclick = function () { boats.forEach(function (b) { hidden.add(b.id); }); redraw(); };
+    body.querySelectorAll("[data-boat-toggle]").forEach(function (btn) {
+      btn.onclick = function () {
+        var id = btn.getAttribute("data-boat-toggle");
+        hidden.has(id) ? hidden.delete(id) : hidden.add(id);
+        redraw();
+      };
+    });
+    body.querySelectorAll("[data-site-toggle]").forEach(function (btn) {
+      btn.onclick = function () {
+        var site = btn.getAttribute("data-site-toggle");
+        var gb = boats.filter(function (b) { return b.site === site; });
+        var allHidden = gb.every(function (b) { return hidden.has(b.id); });
+        gb.forEach(function (b) { allHidden ? hidden.delete(b.id) : hidden.add(b.id); });
+        redraw();
+      };
+    });
   }
 
   // 어종 축약: "주꾸미·갑오징어" → "쭈/갑"
@@ -232,7 +233,7 @@
       if (firstRun) {
         (b.boats || []).forEach(function (x) { hidden.add(x.id); });
         saveHidden();
-        setTimeout(openBoatPicker, 300);
+        setTimeout(openFilters, 300);
       }
     }
     if (el.mLabel) {
@@ -240,8 +241,7 @@
       el.mLabel.innerHTML = '<span class="yr">' + state.months[0].slice(0, 4) + "</span> &nbsp;" + mm.join(" · ");
     }
     el.planCount.textContent = (b.myplan || []).length;
-    renderBoatBar();
-    renderFlowBar();
+    renderFilterBar();
 
     var boats = visibleBoats();
     el.cols.innerHTML =
