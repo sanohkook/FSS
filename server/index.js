@@ -60,13 +60,6 @@ app.get("/api/board", async (req, res) => {
       .replace(/\{m\}|\{mm\}/g, iso.slice(5, 7))
       .replace(/\{d\}|\{dd\}/g, iso.slice(8, 10)) || "#";
 
-  const topFish = (arr) => {
-    const cnt = {};
-    for (const f of arr) if (f) for (const one of String(f).split("·")) cnt[one] = (cnt[one] || 0) + 1;
-    const keys = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
-    return keys.slice(0, 2).join("·");
-  };
-
   const n = daysInMonth(month);
   const startDay = month === today.slice(0, 7) ? Number(today.slice(8, 10)) : 1;
   const rows = [];
@@ -80,8 +73,7 @@ app.get("/api/board", async (req, res) => {
       if (c) cells[b.id] = c;
     }
     for (const b of linkOnly) cells[b.id] = { status: "link", url: linkUrl(siteById[b.siteId], iso) };
-    const fish = topFish(Object.values(dayAvail).map((c) => c.fish));
-    rows.push({ ...t, isToday: iso === today, fish, cells });
+    rows.push({ ...t, isToday: iso === today, cells });
   }
 
   res.json({

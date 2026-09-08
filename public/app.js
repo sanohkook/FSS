@@ -65,11 +65,21 @@
   };
 
   // ---------- load / render ----------
-  // 이번 달 + 2개월을 세로로 이어서 한 번에 표시 (탭 선택 없음)
-  function load() {
+  // 이번 달 ~ 올해 12월(최소 3개월)을 세로로 이어서 한 번에 표시 (탭 선택 없음)
+  function monthList() {
     var now = new Date();
     var cur = now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2);
-    var months = [cur, shiftMonth(cur, 1), shiftMonth(cur, 2)];
+    var endDec = now.getFullYear() + "-12";
+    var out = [cur];
+    for (var i = 1; i < 12; i++) {
+      var m = shiftMonth(cur, i);
+      out.push(m);
+      if (m >= endDec && out.length >= 3) break;
+    }
+    return out;
+  }
+  function load() {
+    var months = monthList();
     return Promise.all(months.map(function (m) {
       return api("GET", "/api/board?month=" + encodeURIComponent(m));
     })).then(function (parts) {
@@ -170,6 +180,19 @@
     el.flowbar.querySelector("[data-seatonly]").onclick = function () { setSeatOnly(!seatOnly); };
   }
 
+  // 어종 축약: "주꾸미·갑오징어" → "쭈/갑"
+  var FISH_ABBR = {
+    "주꾸미": "쭈", "갑오징어": "갑", "오징어": "오징", "한치": "한치",
+    "광어": "광어", "우럭": "우럭", "참돔": "참돔", "돌돔": "돌돔", "감성돔": "감성",
+    "농어": "농어", "삼치": "삼치", "부시리": "부시", "방어": "방어", "대구": "대구",
+    "열기": "열기", "가자미": "가자", "학꽁치": "꽁치", "문어": "문어", "볼락": "볼락",
+    "쥐노래미": "놀래미", "망상어": "망상", "숭어": "숭어",
+  };
+  function fishAbbr(f) {
+    if (!f) return "";
+    return String(f).split("·").map(function (x) { return FISH_ABBR[x] || x; }).join("/");
+  }
+
   function planKey(d, id) { return d + "|" + id; }
   function planSet() {
     var s = {};
@@ -189,20 +212,20 @@
 
     var boats = visibleBoats();
     el.cols.innerHTML =
-      '<col class="c-w-date"><col class="c-w-mul"><col class="c-w-flow"><col class="c-w-fish">' +
+      '<col class="c-w-date"><col class="c-w-mul"><col class="c-w-flow">' +
       boats.map(function () { return '<col class="c-w-boat">'; }).join("");
 
     el.head.innerHTML =
-      '<tr><th class="c-date">날짜</th><th class="c-mul">물때</th><th class="c-flow">조류</th><th class="c-fish">어종</th>' +
+      '<tr><th class="c-date">날짜</th><th class="c-mul">물때</th><th class="c-flow">조류</th>' +
       boats.map(function (bt) {
         return '<th class="boat-h" data-boat="' + esc(bt.id) + '" title="' + esc(bt.site) + " · " + esc(bt.name) + '">' +
           '<span class="bn">' + esc(bt.name) + "</span></th>";
       }).join("") +
       "</tr>";
 
-    // 표 전체 폭 = 고정 4열(270) + 배 수 × 112  (열폭 고정, 배만큼만 넓어짐)
+    // 표 전체 폭 = 고정 3열(198) + 배 수 × 112  (열폭 고정, 배만큼만 넓어짐)
     var tbl = el.head.closest("table");
-    if (tbl) tbl.style.width = 270 + boats.length * 112 + "px";
+    if (tbl) tbl.style.width = 198 + boats.length * 112 + "px";
 
     var mine = planSet();
     var shownRows = b.rows.filter(function (r) {
@@ -221,7 +244,7 @@
       var sep = "";
       if (r.date.slice(0, 7) !== curMonth) {
         curMonth = r.date.slice(0, 7);
-        sep = '<tr class="mrow"><td colspan="' + (4 + boats.length) + '">' +
+        sep = '<tr class="mrow"><td colspan="' + (3 + boats.length) + '">' +
           curMonth.slice(0, 4) + "년 " + +curMonth.slice(5, 7) + "월</td></tr>";
       }
       var wd = r.weekday;
@@ -253,8 +276,6 @@
         h += '<td class="c-flow">&mdash;</td>';
       }
 
-      h += '<td class="c-fish">' + (r.fish ? '<span class="fish">' + esc(r.fish) + "</span>" : "&mdash;") + "</td>";
-
       h += boats.map(function (bt) {
         var c = r.cells[bt.id];
         var starOn = mine[planKey(r.date, bt.id)] ? " on" : "";
@@ -275,10 +296,11 @@
           label = "잔여 " + c.remain + "석";
           sub = c.total ? (c.total - c.remain) + "/" + c.total : "예약하기 ↗";
         } else { label = "예약 확인"; sub = "인원정보 없음"; }
+        var fx = fishAbbr(c.fish);
         return '<td class="c-boat"><div class="cell s-' + c.status + (open ? " has-seat" : "") + '">' +
           '<span class="body" data-url="' + esc(c.url) + '" title="' + esc(bt.name) + " · " + r.date +
-          (open ? ' 예약하기' : ' 예약 페이지') + '">' +
-          '<span class="st">' + esc(label) + (open ? ' <span class="go">↗</span>' : "") + "</span>" +
+          (c.fish ? " · " + esc(c.fish) : "") + (open ? ' 예약하기' : ' 예약 페이지') + '">' +
+          '<span class="st">' + (fx ? '<span class="fx">' + esc(fx) + "</span> " : "") + esc(label) + (open ? ' <span class="go">↗</span>' : "") + "</span>" +
           (sub ? '<span class="sub mono">' + esc(sub) + "</span>" : "") + "</span>" +
           '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button>" +
           "</div></td>";
@@ -289,7 +311,7 @@
     }).join("");
 
     el.body.innerHTML = rowsHtml ||
-      '<tr><td class="empty" colspan="' + (4 + boats.length) + '">이 달 데이터가 없습니다.</td></tr>';
+      '<tr><td class="empty" colspan="' + (3 + boats.length) + '">이 달 데이터가 없습니다.</td></tr>';
 
     // 엑셀 틀고정: 실제 열 너비를 재서 sticky 오프셋 설정
     requestAnimationFrame(function () {
@@ -297,11 +319,9 @@
       if (!hr) return;
       var d = hr.children[0].getBoundingClientRect().width;
       var m = hr.children[1].getBoundingClientRect().width;
-      var fl = hr.children[2].getBoundingClientRect().width;
       var tbl = el.head.closest("table");
       tbl.style.setProperty("--sticky-mul", d + "px");
       tbl.style.setProperty("--sticky-flow", (d + m) + "px");
-      tbl.style.setProperty("--sticky-fish", (d + m + fl) + "px");
       // 배가 늘었으면(사이트 추가 등) 새 열이 보이도록 오른쪽 끝으로
       var sc = document.querySelector(".scroller");
       if (sc && state._boatN != null && boats.length > state._boatN) sc.scrollLeft = sc.scrollWidth;

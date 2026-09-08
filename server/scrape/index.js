@@ -16,10 +16,15 @@ function addMonths(iso, k) {
 
 const ADAPTERS = { xe: scrapeXe, sunsang: scrapeSunsang, recipe: scrapeRecipe };
 
-export async function refreshAll({ months = 3 } = {}) {
+export async function refreshAll({ months } = {}) {
   const sites = await getSites();
   const prev = await getAvail();
   const fromIso = isoToday();
+  // 이번 달 ~ 올해 12월 (최소 4개월 앞까지)
+  if (months == null) {
+    const m = Number(fromIso.slice(5, 7));
+    months = Math.max(4, 12 - m + 1);
+  }
   const toIso = addMonths(fromIso, months);
   const range = { fromIso, toIso };
 
