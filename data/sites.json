@@ -22,5 +22,21 @@
     "listUrl": "https://jnaksi.com/index.php?mid=bk&year={y}&month={m}&mode=list",
     "dayUrl": "https://jnaksi.com/index.php?mid=bk&year={y}&month={m}&day={d}&mode=list",
     "enabled": true
+  },
+  {
+    "id": "s26yhyb",
+    "name": "영흥도팀만수",
+    "kind": "xe",
+    "listUrl": "https://teammansu.kr/index.php?mid=bk&year={y}&month={m}&mode=list",
+    "dayUrl": "https://teammansu.kr/index.php?mid=bk&year={y}&month={m}&day={d}&mode=list",
+    "enabled": true
+  },
+  {
+    "id": "sn2ji62",
+    "name": "영흥도아라호",
+    "kind": "xe",
+    "listUrl": "https://www.araho.kr/index.php?mid=bk&year={y}&month={m}&mode=list",
+    "dayUrl": "https://www.araho.kr/index.php?mid=bk&year={y}&month={m}&day={d}&mode=list",
+    "enabled": true
   }
 ]
