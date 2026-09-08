@@ -132,6 +132,27 @@
     seatOnly = v;
     try { v ? localStorage.setItem("ijb.seatOnly", "1") : localStorage.removeItem("ijb.seatOnly"); } catch (e) {}
   }
+  // 요일 · 공휴일 필터: 비어 있으면 전체 표시. "공휴일" 선택 시 공휴일은 요일과 무관하게 통과
+  var DOW_TOKENS = ["월", "화", "수", "목", "금", "토", "일", "공휴일"];
+  var dowSel = (function () {
+    try { return new Set(JSON.parse(localStorage.getItem("ijb.dow") || "[]")); }
+    catch (e) { return new Set(); }
+  })();
+  function saveDow() {
+    try {
+      dowSel.size ? localStorage.setItem("ijb.dow", JSON.stringify([...dowSel]))
+        : localStorage.removeItem("ijb.dow");
+    } catch (e) {}
+  }
+  function toggleDow(t) {
+    dowSel.has(t) ? dowSel.delete(t) : dowSel.add(t);
+    saveDow();
+  }
+  function rowPassesDow(r) {
+    if (!dowSel.size) return true;
+    if (r.holiday && dowSel.has("공휴일")) return true;
+    return dowSel.has(r.weekday);
+  }
 
   // 메인 화면: '검색 조건' 버튼 + 활성 조건 요약
   function renderFilterBar() {
@@ -140,6 +161,7 @@
     var tags = [];
     if (seatOnly) tags.push("예약 가능");
     if (flowMax) tags.push("조류≤" + flowMax);
+    if (dowSel.size) tags.push([...dowSel].join("·"));
     tags.push("선박 " + vis + "/" + boats.length);
     el.filterbar.innerHTML =
       '<button class="bb-open" data-open-filters>🔍 검색 조건 <b>' + esc(tags.join(" · ")) + "</b></button>";
@@ -168,6 +190,11 @@
       '<div class="flt-sec"><span class="flt-h">조류 세기</span>' +
       '<button class="bb-chip" data-flow70 aria-pressed="' + (flowMax === 70) + '">70% 이하만</button>' +
       "</div>" +
+      '<div class="flt-sec"><span class="flt-h">요일 · 공휴일' +
+      (dowSel.size ? '<button class="bb-all" data-dow-clear>해제</button>' : "") + "</span>" +
+      '<div class="bb-chips">' + DOW_TOKENS.map(function (t) {
+        return '<button class="bb-chip" data-dow="' + esc(t) + '" aria-pressed="' + dowSel.has(t) + '">' + esc(t) + "</button>";
+      }).join("") + "</div></div>" +
       '<div class="flt-sec"><span class="flt-h">선박 <b>' + vis + " / " + boats.length + "</b>" +
       '<button class="bb-all" data-all="show">전체</button><button class="bb-all" data-all="hide">해제</button></span>' +
       '<div class="bb-grid">' + bySiteGroups().map(function (g) {
@@ -182,6 +209,11 @@
     var redraw = function () { saveHidden(); render(); drawFilters(p); };
     body.querySelector("[data-seatonly]").onclick = function () { setSeatOnly(!seatOnly); render(); drawFilters(p); };
     body.querySelector("[data-flow70]").onclick = function () { setFlowMax(flowMax === 70 ? 0 : 70); render(); drawFilters(p); };
+    body.querySelectorAll("[data-dow]").forEach(function (btn) {
+      btn.onclick = function () { toggleDow(btn.getAttribute("data-dow")); render(); drawFilters(p); };
+    });
+    var dowClear = body.querySelector("[data-dow-clear]");
+    if (dowClear) dowClear.onclick = function () { dowSel.clear(); saveDow(); render(); drawFilters(p); };
     body.querySelector('[data-all="show"]').onclick = function () { hidden.clear(); redraw(); };
     body.querySelector('[data-all="hide"]').onclick = function () { boats.forEach(function (b) { hidden.add(b.id); }); redraw(); };
     body.querySelectorAll("[data-boat-toggle]").forEach(function (btn) {
@@ -265,6 +297,7 @@
 
     var mine = planSet();
     var shownRows = b.rows.filter(function (r) {
+      if (!rowPassesDow(r)) return false;
       if (flowMax && !(r.flow != null && r.flow <= flowMax)) return false;
       if (seatOnly) {
         var any = boats.some(function (bt) {
@@ -347,8 +380,11 @@
     var hintRow = boats.length === 0
       ? '<tr><td class="empty" colspan="2">위 <b>선박 선택</b> 에서 볼 배를 고르세요</td></tr>'
       : "";
+    var emptyMsg = (b.rows.length && (dowSel.size || flowMax || seatOnly))
+      ? "조건에 맞는 날이 없습니다."
+      : "이 달 데이터가 없습니다.";
     el.body.innerHTML = (hintRow + rowsHtml) ||
-      '<tr><td class="empty" colspan="' + (2 + boats.length) + '">이 달 데이터가 없습니다.</td></tr>';
+      '<tr><td class="empty" colspan="' + (2 + boats.length) + '">' + emptyMsg + "</td></tr>";
 
     requestAnimationFrame(function () {
       // 배가 늘었으면(사이트 추가 등) 새 열이 보이도록 오른쪽 끝으로
