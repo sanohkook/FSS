@@ -10,7 +10,7 @@
     nextM: document.getElementById("nextM"),
     tabs: document.getElementById("tabs"),
     boatbar: document.getElementById("boatbar"),
-    mulbar: document.getElementById("mulbar"),
+    flowbar: document.getElementById("flowbar"),
     cols: document.getElementById("gridCols"),
     head: document.getElementById("gridHead"),
     body: document.getElementById("gridBody"),
@@ -125,36 +125,26 @@
     });
   }
 
-  // ---------- 물때 필터 (per browser) ----------
-  // 그룹: 사리(7·8물) / 중간(5·6·9·10물) / 작은물(1~4·11~13물) / 조금(조금·무시)
-  var MUL_GROUPS = [
-    { key: "사리", label: "사리", test: function (m) { return m === "7물" || m === "8물"; } },
-    { key: "중간", label: "중간", test: function (m) { return ["5물", "6물", "9물", "10물"].indexOf(m) >= 0; } },
-    { key: "작은물", label: "작은 물", test: function (m) { return /^(1|2|3|4|11|12|13)물$/.test(m); } },
-    { key: "조금", label: "조금·무시", test: function (m) { return m === "조금" || m === "무시"; } },
-  ];
-  function mulGroup(m) {
-    for (var i = 0; i < MUL_GROUPS.length; i++) if (MUL_GROUPS[i].test(m)) return MUL_GROUPS[i].key;
-    return "작은물";
-  }
-  var hiddenMul = (function () {
-    try { return new Set(JSON.parse(localStorage.getItem("ijb.hiddenMul") || "[]")); }
-    catch (e) { return new Set(); }
+  // ---------- 조류 세기 필터 (per browser) ----------
+  // 선택한 % 이하인 날짜만 표시(약한 물 찾기). 임계값 30 / 50 / 70 / 80.
+  var FLOW_STEPS = [30, 50, 70, 80];
+  var flowMax = (function () {
+    try { return Number(localStorage.getItem("ijb.flowMax")) || 0; } catch (e) { return 0; }
   })();
-  function saveHiddenMul() {
-    try { localStorage.setItem("ijb.hiddenMul", JSON.stringify([...hiddenMul])); } catch (e) {}
+  function setFlowMax(v) {
+    flowMax = v;
+    try { v ? localStorage.setItem("ijb.flowMax", String(v)) : localStorage.removeItem("ijb.flowMax"); } catch (e) {}
+    render();
   }
-  function renderMulBar() {
-    var h = '<span class="bb-label">물때</span>' + MUL_GROUPS.map(function (g) {
-      return '<button class="bb-chip" data-mul="' + g.key + '" aria-pressed="' + (!hiddenMul.has(g.key)) + '">' + esc(g.label) + "</button>";
-    }).join("");
-    el.mulbar.innerHTML = h;
-    el.mulbar.querySelectorAll("[data-mul]").forEach(function (btn) {
-      btn.onclick = function () {
-        var k = btn.getAttribute("data-mul");
-        hiddenMul.has(k) ? hiddenMul.delete(k) : hiddenMul.add(k);
-        saveHiddenMul(); render();
-      };
+  function renderFlowBar() {
+    var h = '<span class="bb-label">조류 세기</span>' +
+      '<button class="bb-chip" data-flow="0" aria-pressed="' + (flowMax === 0) + '">전체</button>' +
+      FLOW_STEPS.map(function (s) {
+        return '<button class="bb-chip" data-flow="' + s + '" aria-pressed="' + (flowMax === s) + '">' + s + "% 이하</button>";
+      }).join("");
+    el.flowbar.innerHTML = h;
+    el.flowbar.querySelectorAll("[data-flow]").forEach(function (btn) {
+      btn.onclick = function () { setFlowMax(Number(btn.getAttribute("data-flow"))); };
     });
   }
 
@@ -180,7 +170,7 @@
     });
 
     renderBoatBar();
-    renderMulBar();
+    renderFlowBar();
 
     var boats = visibleBoats();
     el.cols.innerHTML =
@@ -196,7 +186,7 @@
       "</tr>";
 
     var mine = planSet();
-    var shownRows = b.rows.filter(function (r) { return !r.mul || !hiddenMul.has(mulGroup(r.mul)); });
+    var shownRows = b.rows.filter(function (r) { return !flowMax || (r.flow != null && r.flow <= flowMax); });
     var rowsHtml = shownRows.map(function (r) {
       var wd = r.weekday;
       var cls = [];
@@ -234,6 +224,12 @@
         if (!c) {
           return '<td class="c-boat"><div class="cell miss s-unknown">' +
             '<span class="body" data-url="" title="예약 정보 없음"><span class="st">–</span></span>' +
+            '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button></div></td>";
+        }
+        if (c.status === "link") {
+          return '<td class="c-boat"><div class="cell s-link">' +
+            '<span class="body" data-url="' + esc(c.url) + '" title="' + esc(bt.name) + " 예약 페이지 (파싱 규칙 없음)\">" +
+            '<span class="st">✕</span><span class="sub">예약 페이지 ↗</span></span>' +
             '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button></div></td>";
         }
         var label, sub = "", open = c.status === "few" || c.status === "open";

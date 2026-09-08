@@ -12,6 +12,7 @@ import {
 import { loadTide, tideRow, daysInMonth, clearTideCache } from "./tide.js";
 import { refreshAll } from "./scrape/index.js";
 import { detectKind, normalizeSiteUrl } from "./scrape/detect.js";
+import { buildRecipe } from "./scrape/ai.js";
 import { refreshTide } from "./refreshTide.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,9 +43,22 @@ app.get("/api/board", async (req, res) => {
     getMyplan(),
   ]);
 
-  const enabledIds = new Set(sites.filter((s) => s.enabled !== false).map((s) => s.id));
-  const boats = (avail.boats || []).filter((b) => enabledIds.has(b.siteId));
-  const siteName = Object.fromEntries(sites.map((s) => [s.id, s.name]));
+  const enabledSites = sites.filter((s) => s.enabled !== false);
+  const enabledIds = new Set(enabledSites.map((s) => s.id));
+  const siteById = Object.fromEntries(sites.map((s) => [s.id, s]));
+  const scraped = (avail.boats || []).filter((b) => enabledIds.has(b.siteId));
+
+  // 파싱 규칙이 없는(generic) 사이트는 배가 없으므로 링크 전용 열 1개를 만든다 → 셀은 "X"
+  const linkOnly = enabledSites
+    .filter((s) => s.kind === "generic" && !scraped.some((b) => b.siteId === s.id))
+    .map((s) => ({ id: `${s.id}:_link`, siteId: s.id, name: s.name, fish: "", generic: true }));
+  const boats = [...scraped, ...linkOnly];
+
+  const linkUrl = (s, iso) =>
+    (s.dayUrl || s.listUrl || "")
+      .replace(/\{y\}|\{yyyy\}/g, iso.slice(0, 4))
+      .replace(/\{m\}|\{mm\}/g, iso.slice(5, 7))
+      .replace(/\{d\}|\{dd\}/g, iso.slice(8, 10)) || "#";
 
   const n = daysInMonth(month);
   const startDay = month === today.slice(0, 7) ? Number(today.slice(8, 10)) : 1;
@@ -54,10 +68,11 @@ app.get("/api/board", async (req, res) => {
     const t = tideRow(tide, iso);
     const cells = {};
     const dayAvail = avail.byDate?.[iso] || {};
-    for (const b of boats) {
+    for (const b of scraped) {
       const c = dayAvail[b.id];
       if (c) cells[b.id] = c;
     }
+    for (const b of linkOnly) cells[b.id] = { status: "link", url: linkUrl(siteById[b.siteId], iso) };
     rows.push({ ...t, isToday: iso === today, cells });
   }
 
@@ -65,9 +80,17 @@ app.get("/api/board", async (req, res) => {
     month,
     today,
     updatedAt: avail.updatedAt,
-    tideSource: "바다타임 인천(158)",
+    tideSource: "국립해양조사원 인천 조석예보",
     sites,
-    boats: boats.map((b) => ({ id: b.id, siteId: b.siteId, site: siteName[b.siteId] || b.siteId, name: b.name, fish: b.fish || "" })),
+    boats: boats.map((b) => ({
+      id: b.id,
+      siteId: b.siteId,
+      site: (siteById[b.siteId] || {}).name || b.siteId,
+      kind: (siteById[b.siteId] || {}).kind || "generic",
+      name: b.name,
+      fish: b.fish || "",
+      generic: !!b.generic,
+    })),
     rows,
     myplan,
   });
@@ -78,8 +101,33 @@ app.get("/api/sites", async (_req, res) => res.json(await getSites()));
 app.post("/api/sites", async (req, res) => {
   const { name, url } = req.body || {};
   if (!url || !/^https?:\/\//.test(url)) return res.status(400).json({ error: "url 필요" });
-  const kind = await detectKind(url);
+  let kind = await detectKind(url);
   const { listUrl, dayUrl } = normalizeSiteUrl(url, kind);
+
+  // 알려진 플랫폼(xe·sunsang)이 아니면 AI로 파싱 레시피 1회 생성 (토큰 사용)
+  let recipe = null;
+  let aiNote = null;
+  if (kind === "generic") {
+    const now = new Date();
+    const probe = listUrl
+      .replace(/\{y\}|\{yyyy\}/g, now.getFullYear())
+      .replace(/\{m\}|\{mm\}/g, String(now.getMonth() + 1).padStart(2, "0"));
+    try {
+      const r = await buildRecipe(probe);
+      if (r.recipe) {
+        kind = "recipe";
+        recipe = r.recipe;
+        aiNote = `AI 분석 성공 (배 ${r.sample.boats} · ${r.sample.days}일 인식)`;
+      } else {
+        aiNote = r.reason === "no_key"
+          ? "ANTHROPIC_API_KEY 미설정 — 링크 전용(X)으로 추가"
+          : "AI가 파싱 규칙을 못 찾음 — 링크 전용(X)으로 추가";
+      }
+    } catch (e) {
+      aiNote = `AI 분석 실패: ${e.message} — 링크 전용(X)`;
+    }
+  }
+
   const site = {
     id: slugId(name),
     name: name || new URL(url).hostname.replace(/^www\./, ""),
@@ -88,14 +136,15 @@ app.post("/api/sites", async (req, res) => {
     dayUrl,
     enabled: true,
   };
+  if (recipe) site.recipe = recipe;
   const next = await withLock("sites.json", async () => {
     const sites = await getSites();
     sites.push(site);
     await saveSites(sites);
     return sites;
   });
-  refreshAll().catch((e) => console.error("post-add scrape:", e.message));
-  res.json({ site, sites: next, kind });
+  if (kind !== "generic") refreshAll().catch((e) => console.error("post-add scrape:", e.message));
+  res.json({ site: { ...site, recipe: undefined }, sites: next, kind, aiNote });
 });
 
 app.put("/api/sites/:id", async (req, res) => {

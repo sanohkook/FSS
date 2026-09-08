@@ -2,6 +2,7 @@
 import { getSites, getAvail, writeJson, withLock } from "../store.js";
 import { scrapeXe } from "./xe.js";
 import { scrapeSunsang } from "./sunsang.js";
+import { scrapeRecipe } from "./recipe.js";
 
 function isoToday() {
   const n = new Date();
@@ -13,7 +14,7 @@ function addMonths(iso, k) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
 
-const ADAPTERS = { xe: scrapeXe, sunsang: scrapeSunsang };
+const ADAPTERS = { xe: scrapeXe, sunsang: scrapeSunsang, recipe: scrapeRecipe };
 
 export async function refreshAll({ months = 3 } = {}) {
   const sites = await getSites();
