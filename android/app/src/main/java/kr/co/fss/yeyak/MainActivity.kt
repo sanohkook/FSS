@@ -13,6 +13,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ProgressBar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 
 /**
  * 맥 없이 앱 단독 동작.
@@ -46,6 +49,21 @@ class MainActivity : Activity() {
         root.addView(web, FrameLayout.LayoutParams(-1, -1))
         root.addView(bar)
         setContentView(root)
+
+        // 상태바·네비게이션바(제스처 바 포함)·디스플레이 컷아웃을 가리지 않도록 안전영역만큼 패딩
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.decorView.setBackgroundColor(0xFFFFFFFF.toInt())
+        WindowCompat.getInsetsController(window, root).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val b = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            v.setPadding(b.left, b.top, b.right, b.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
 
         web.settings.apply {
             javaScriptEnabled = true
@@ -103,13 +121,16 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun appVersion(): String = BuildConfig.VERSION_NAME
 
-        @JavascriptInterface
-        fun upgrade() {
-            Updater.run(this@MainActivity) { js ->
-                runOnUiThread {
-                    web.evaluateJavascript("window.__fssUpstate&&window.__fssUpstate($js)", null)
-                }
-            }
+        private fun relay(js: String) = runOnUiThread {
+            web.evaluateJavascript("window.__fssUpstate&&window.__fssUpstate($js)", null)
         }
+
+        /** 로딩 시 조용히 새 버전 확인 */
+        @JavascriptInterface
+        fun checkUpdate() = Updater.check(this@MainActivity) { relay(it.toString()) }
+
+        /** "업그레이드" 버튼 — 내려받아 설치 */
+        @JavascriptInterface
+        fun upgrade() = Updater.run(this@MainActivity) { relay(it.toString()) }
     }
 }

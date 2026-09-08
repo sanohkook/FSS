@@ -234,17 +234,14 @@
     });
   }
 
-  // 어종 축약: "주꾸미·갑오징어" → "쭈/갑"
-  var FISH_ABBR = {
-    "주꾸미": "쭈", "갑오징어": "갑", "오징어": "오징", "한치": "한치",
-    "광어": "광어", "우럭": "우럭", "참돔": "참돔", "돌돔": "돌돔", "감성돔": "감성",
-    "농어": "농어", "삼치": "삼치", "부시리": "부시", "방어": "방어", "대구": "대구",
-    "열기": "열기", "가자미": "가자", "학꽁치": "꽁치", "문어": "문어", "볼락": "볼락",
-    "쥐노래미": "놀래미", "망상어": "망상", "숭어": "숭어",
-  };
+  // 어종 축약: 주꾸미→쭈, 갑오징어→갑, 참돔→참, '광어·우럭' 조합→광/우.
+  // 그 외 어종은 줄이지 않고 그대로 표시.
+  var FISH_ABBR = { "주꾸미": "쭈", "갑오징어": "갑", "참돔": "참" };
   function fishAbbr(f) {
     if (!f) return "";
-    return String(f).split("·").map(function (x) { return FISH_ABBR[x] || x; }).join("/");
+    var parts = String(f).split("·");
+    if (parts.length === 2 && parts.indexOf("광어") >= 0 && parts.indexOf("우럭") >= 0) return "광/우";
+    return parts.map(function (x) { return FISH_ABBR[x] || x; }).join("/");
   }
 
   function planKey(d, id) { return d + "|" + id; }
@@ -361,7 +358,7 @@
         var label, sub = "", open = c.status === "few" || c.status === "open";
         if (c.status === "full") { label = "마감"; sub = c.total ? c.total + "/" + c.total : ""; }
         else if (open) {
-          label = "잔여 " + c.remain + "석";
+          label = c.remain + "석";
           sub = c.total ? (c.total - c.remain) + "/" + c.total : "";
         } else { label = "예약 확인"; sub = "인원정보 없음"; }
         var fx = fishAbbr(c.fish);
@@ -602,28 +599,61 @@
   };
 
   // ---------- 업그레이드 (안드로이드 앱 전용) ----------
+  // 로딩 시 조용히 새 버전 확인 → 있을 때만 버튼 노출. ✕ 로 이번 버전 알림 끄기.
   (function () {
+    var wrap = document.getElementById("upgradeWrap");
     var ub = document.getElementById("upgradeBtn");
-    if (!ub || !window.FssNative) return;
-    var ver = "";
-    try { ver = FssNative.appVersion(); } catch (e) {}
-    ub.hidden = false;
-    if (ver) ub.title = "현재 버전 " + ver;
-    var reset = function () { ub.disabled = false; ub.textContent = "업그레이드"; };
+    var uc = document.getElementById("upgradeClose");
+    if (!wrap || !ub || !window.FssNative) return;
+
+    var latest = "";
+    var clicked = false;
+    var reset = function () {
+      ub.disabled = false;
+      ub.textContent = "업그레이드" + (latest ? " " + latest : "");
+    };
+    var dismissed = function () {
+      try { return localStorage.getItem("ijb.upgDismiss"); } catch (e) { return null; }
+    };
+
     ub.onclick = function () {
+      clicked = true;
       ub.disabled = true;
       ub.textContent = "확인 중…";
       try { FssNative.upgrade(); } catch (e) { toast("업그레이드를 시작할 수 없습니다"); reset(); }
     };
+    uc.onclick = function () {
+      try { if (latest) localStorage.setItem("ijb.upgDismiss", latest); } catch (e) {}
+      wrap.hidden = true;
+    };
+
     window.__fssUpstate = function (s) {
       if (!s || !s.phase) return;
-      if (s.phase === "checking") { ub.textContent = "확인 중…"; }
-      else if (s.phase === "none") { toast("이미 최신 버전입니다" + (s.current ? " (" + s.current + ")" : "")); reset(); }
-      else if (s.phase === "downloading") { ub.textContent = "받는 중 " + (s.pct || 0) + "%"; }
-      else if (s.phase === "permission") { toast("설정에서 ‘이 출처의 앱 설치 허용’을 켠 뒤 다시 눌러주세요"); reset(); }
-      else if (s.phase === "install") { toast("설치 화면에서 계속 진행하세요"); reset(); }
-      else if (s.phase === "error") { toast("업데이트 실패: " + (s.msg || "")); reset(); }
+      if (s.phase === "available") {
+        latest = s.latest || "";
+        if (dismissed() === latest && latest) return; // 이 버전 알림은 사용자가 끔
+        ub.title = (s.current ? "현재 " + s.current + " → " : "") + latest;
+        reset();
+        wrap.hidden = false;
+      } else if (s.phase === "none") {
+        wrap.hidden = true;
+      } else if (s.phase === "checking") {
+        ub.textContent = "확인 중…";
+      } else if (s.phase === "downloading") {
+        ub.textContent = "받는 중 " + (s.pct || 0) + "%";
+      } else if (s.phase === "permission") {
+        toast("설정에서 ‘이 출처의 앱 설치 허용’을 켠 뒤 다시 눌러주세요");
+        reset();
+      } else if (s.phase === "install") {
+        toast("설치 화면에서 계속 진행하세요");
+        reset();
+      } else if (s.phase === "error") {
+        if (clicked) toast("업데이트 실패: " + (s.msg || "")); // 로딩 체크 실패는 조용히
+        reset();
+      }
     };
+
+    try { FssNative.checkUpdate(); } catch (e) {}
   })();
 
   load().catch(function (e) {

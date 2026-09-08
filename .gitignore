@@ -15,6 +15,7 @@ android/.idea/
 android/captures/
 *.apk
 *.aab
+*.zip
 
 # 서명 키 — 절대 커밋 금지. 분실 시 앱 업데이트 영구 불가 → 별도 백업 필수
 android/*.jks

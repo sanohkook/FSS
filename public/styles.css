@@ -1,3 +1,5 @@
+[hidden] { display: none !important; }
+
 :root {
   --ground: #eef2f3;
   --surface: #ffffff;
@@ -95,6 +97,19 @@ button[disabled] { opacity: .5; cursor: default; }
 .btn-primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
 .actions { display: flex; gap: 8px; align-items: center; }
 .upd { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+
+/* 새 버전 알림 (앱 전용, 새 버전 있을 때만 노출) */
+.upg { display: inline-flex; align-items: center; gap: 0; }
+#upgradeBtn {
+  background: var(--few-bg, #fff5e6); border-color: var(--few, #e08600); color: var(--few, #b56b00);
+  font-weight: 600; border-radius: 7px 0 0 7px;
+}
+#upgradeBtn:hover { border-color: var(--few, #e08600); background: color-mix(in srgb, var(--few, #e08600) 18%, transparent); }
+#upgradeClose {
+  border-left: none; border-radius: 0 7px 7px 0; color: var(--ink-3);
+  padding: 7px 8px; font-size: 12px;
+}
+#upgradeClose:hover { border-color: var(--line); color: var(--ink); }
 .upd.stale { color: var(--few); font-weight: 600; }
 .badge { display: inline-flex; align-items: center; gap: 6px; }
 .badge .n {

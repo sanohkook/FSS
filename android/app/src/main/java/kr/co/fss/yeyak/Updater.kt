@@ -13,34 +13,44 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * GitHub Releases 최신본과 현재 설치 버전을 비교해, 새 버전이면 APK 를 내려받아
- * 시스템 패키지 설치기를 띄운다. 자동 확인은 하지 않고 화면의 "업그레이드" 버튼으로만 동작.
+ * GitHub Releases 최신본과 현재 설치 버전을 비교한다.
+ *  - check(): 로딩 시 조용히 확인 → 새 버전이 있으면 phase "available"
+ *  - run():   "업그레이드" 버튼 → APK 내려받아 시스템 패키지 설치기 실행
+ * 자동 확인/설치는 없음.
  *
- * 릴리스 규칙: 태그 = vX.Y (예 v2.3), 자산으로 *.apk 하나 업로드.
+ * 릴리스 규칙: 태그 = vX.Y (예 v2.3), 자산으로 *.apk 하나.
  */
 object Updater {
     private const val API = "https://api.github.com/repos/sanohkook/FSS/releases/latest"
 
-    /** 진행 상태를 JS(window.__fssUpstate)로 전달 */
+    private data class Rel(val tag: String, val apkUrl: String)
+
+    /** 새 버전 여부만 확인. 결과 phase: available | none | error */
+    fun check(act: Activity, report: (JSONObject) -> Unit) {
+        Thread {
+            try {
+                val rel = latest()
+                if (rel == null) report(st("none"))
+                else report(st("available").put("latest", rel.tag).put("current", BuildConfig.VERSION_NAME))
+            } catch (e: Exception) {
+                Log.w("fss", "update check", e)
+                report(st("error").put("msg", e.message ?: "확인 실패"))
+            }
+        }.start()
+    }
+
+    /** 최신 APK 를 내려받아 설치 화면을 띄운다. */
     fun run(act: Activity, report: (JSONObject) -> Unit) {
         Thread {
             try {
                 report(st("checking"))
-                val res = Http.get(API, mapOf("Accept" to "application/vnd.github+json"))
-                if (res.status == 404) { report(st("error").put("msg", "아직 배포된 릴리스가 없습니다")); return@Thread }
-                val rel = JSONObject(res.text)
-                val tag = rel.optString("tag_name").trim().removePrefix("v")
-                val cur = BuildConfig.VERSION_NAME
-                val asset = rel.optJSONArray("assets")?.let { arr ->
-                    (0 until arr.length()).map { arr.getJSONObject(it) }
-                        .firstOrNull { it.optString("name").endsWith(".apk", true) }
+                val rel = latest() ?: run {
+                    report(st("error").put("msg", "받을 수 있는 새 버전이 없습니다")); return@Thread
                 }
-                if (tag.isEmpty() || asset == null) { report(st("error").put("msg", "릴리스에 APK가 없습니다")); return@Thread }
-                if (!newer(tag, cur)) { report(st("none").put("latest", tag).put("current", cur)); return@Thread }
 
-                report(st("downloading").put("latest", tag).put("pct", 0))
-                val apk = download(asset.getString("browser_download_url"), File(act.cacheDir, "updates").apply { mkdirs() }) { pct ->
-                    report(st("downloading").put("latest", tag).put("pct", pct))
+                report(st("downloading").put("latest", rel.tag).put("pct", 0))
+                val apk = download(rel.apkUrl, File(act.cacheDir, "updates").apply { mkdirs() }) { pct ->
+                    report(st("downloading").put("latest", rel.tag).put("pct", pct))
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !act.packageManager.canRequestPackageInstalls()) {
@@ -52,7 +62,7 @@ object Updater {
                     return@Thread
                 }
                 install(act, apk)
-                report(st("install").put("latest", tag))
+                report(st("install").put("latest", rel.tag))
             } catch (e: Exception) {
                 Log.w("fss", "update", e)
                 report(st("error").put("msg", e.message ?: "업데이트 실패"))
@@ -61,6 +71,22 @@ object Updater {
     }
 
     private fun st(phase: String) = JSONObject().put("phase", phase)
+
+    /** 최신 릴리스가 현재보다 높으면 Rel, 아니면(없음/동일/오래됨/형식이상) null */
+    private fun latest(): Rel? {
+        val res = Http.get(API, mapOf("Accept" to "application/vnd.github+json"))
+        if (res.status == 404) return null
+        val rel = JSONObject(res.text)
+        val tag = rel.optString("tag_name").trim().removePrefix("v")
+        val asset = rel.optJSONArray("assets")?.let { arr ->
+            (0 until arr.length()).map { arr.getJSONObject(it) }
+                .firstOrNull { it.optString("name").endsWith(".apk", true) }
+        }
+        Log.i("fss", "update: latest tag=$tag current=${BuildConfig.VERSION_NAME} asset=${asset?.optString("name")}")
+        if (tag.isEmpty() || asset == null) return null
+        if (!newer(tag, BuildConfig.VERSION_NAME)) return null
+        return Rel(tag, asset.getString("browser_download_url"))
+    }
 
     /** a(최신) 가 b(현재) 보다 높은 버전인가 — 점 구분 숫자 비교 */
     private fun newer(a: String, b: String): Boolean {
