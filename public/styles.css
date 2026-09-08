@@ -117,9 +117,8 @@ button[disabled] { opacity: .5; cursor: default; }
 .boatbar { padding: 4px 2px 10px; }
 .mulbar { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; padding: 0 2px 12px; }
 .mulbar .bb-label { font-size: 11px; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; margin-right: 4px; }
-.mulbar .bb-chip { text-decoration: none; opacity: 1; }
-.mulbar .bb-chip[aria-pressed="false"] { color: var(--ink-2); background: var(--surface); }
-.mulbar .bb-chip[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+.mulbar .bb-chip[aria-pressed="false"] { color: var(--ink-2); background: var(--surface); text-decoration: none; opacity: 1; }
+.mulbar .bb-chip[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); border-color: var(--accent); text-decoration: none; opacity: 1; }
 .bb-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
 .bb-head .bb-label { font-size: 11px; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; }
 .bb-head .bb-count { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
