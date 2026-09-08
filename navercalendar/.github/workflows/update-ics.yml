@@ -1,0 +1,41 @@
+name: update-ics
+
+on:
+  schedule:
+    - cron: "20 19 * * *"   # 매일 04:20 KST (UTC 19:20) 갱신
+  workflow_dispatch: {}       # 수동 실행 버튼
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-ics
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build .ics
+        run: |
+          python build_ics.py docs/badatime-158.ics
+          # 지역을 늘리려면 아래처럼 줄을 추가:
+          # BADATIME_LOC=1 BADATIME_NAME=부산 python build_ics.py docs/badatime-1.ics
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/*.ics
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+          else
+            git commit -m "chore: refresh ics ($(date -u +%FT%TZ))"
+            git push
+          fi
