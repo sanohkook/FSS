@@ -10,6 +10,7 @@
     nextM: document.getElementById("nextM"),
     tabs: document.getElementById("tabs"),
     boatbar: document.getElementById("boatbar"),
+    mulbar: document.getElementById("mulbar"),
     cols: document.getElementById("gridCols"),
     head: document.getElementById("gridHead"),
     body: document.getElementById("gridBody"),
@@ -124,6 +125,39 @@
     });
   }
 
+  // ---------- 물때 필터 (per browser) ----------
+  // 그룹: 사리(7·8물) / 중간(5·6·9·10물) / 작은물(1~4·11~13물) / 조금(조금·무시)
+  var MUL_GROUPS = [
+    { key: "사리", label: "사리", test: function (m) { return m === "7물" || m === "8물"; } },
+    { key: "중간", label: "중간", test: function (m) { return ["5물", "6물", "9물", "10물"].indexOf(m) >= 0; } },
+    { key: "작은물", label: "작은 물", test: function (m) { return /^(1|2|3|4|11|12|13)물$/.test(m); } },
+    { key: "조금", label: "조금·무시", test: function (m) { return m === "조금" || m === "무시"; } },
+  ];
+  function mulGroup(m) {
+    for (var i = 0; i < MUL_GROUPS.length; i++) if (MUL_GROUPS[i].test(m)) return MUL_GROUPS[i].key;
+    return "작은물";
+  }
+  var hiddenMul = (function () {
+    try { return new Set(JSON.parse(localStorage.getItem("ijb.hiddenMul") || "[]")); }
+    catch (e) { return new Set(); }
+  })();
+  function saveHiddenMul() {
+    try { localStorage.setItem("ijb.hiddenMul", JSON.stringify([...hiddenMul])); } catch (e) {}
+  }
+  function renderMulBar() {
+    var h = '<span class="bb-label">물때</span>' + MUL_GROUPS.map(function (g) {
+      return '<button class="bb-chip" data-mul="' + g.key + '" aria-pressed="' + (!hiddenMul.has(g.key)) + '">' + esc(g.label) + "</button>";
+    }).join("");
+    el.mulbar.innerHTML = h;
+    el.mulbar.querySelectorAll("[data-mul]").forEach(function (btn) {
+      btn.onclick = function () {
+        var k = btn.getAttribute("data-mul");
+        hiddenMul.has(k) ? hiddenMul.delete(k) : hiddenMul.add(k);
+        saveHiddenMul(); render();
+      };
+    });
+  }
+
   function planKey(d, id) { return d + "|" + id; }
   function planSet() {
     var s = {};
@@ -146,6 +180,7 @@
     });
 
     renderBoatBar();
+    renderMulBar();
 
     var boats = visibleBoats();
     el.cols.innerHTML =
@@ -155,29 +190,29 @@
     el.head.innerHTML =
       '<tr><th class="c-date">날짜</th><th class="c-mul">물때</th><th class="c-flow">조류</th>' +
       boats.map(function (bt) {
-        return '<th class="boat-h" title="' + esc(bt.site) + '">' +
-          '<span class="bn">' + esc(bt.name) + "</span>" +
-          (bt.fish ? '<span class="bf">' + esc(bt.fish) + "</span>" : "") +
-          '<span class="bs">' + esc(bt.site) + "</span></th>";
+        return '<th class="boat-h" data-boat="' + esc(bt.id) + '" title="' + esc(bt.site) + " · " + esc(bt.name) + '">' +
+          '<span class="bn">' + esc(bt.name) + "</span></th>";
       }).join("") +
       "</tr>";
 
     var mine = planSet();
-    var rowsHtml = b.rows.map(function (r) {
+    var shownRows = b.rows.filter(function (r) { return !r.mul || !hiddenMul.has(mulGroup(r.mul)); });
+    var rowsHtml = shownRows.map(function (r) {
       var wd = r.weekday;
       var cls = [];
-      if (wd === "토") cls.push("wknd-sat");
-      if (wd === "일") cls.push("wknd-sun");
+      if (r.holiday) cls.push("hol");
+      else if (wd === "토") cls.push("wknd-sat");
+      else if (wd === "일") cls.push("wknd-sun");
       if (r.isToday) cls.push("today");
       var rowMine = boats.some(function (bt) { return mine[planKey(r.date, bt.id)]; });
       if (rowMine) cls.push("mine");
 
-      var dcls = wd === "토" ? "sat" : wd === "일" ? "sun" : "";
+      var dcls = r.holiday || wd === "일" ? "sun" : wd === "토" ? "sat" : "";
       var day = +r.date.slice(8, 10);
       var h = '<tr class="' + cls.join(" ") + '">';
       h += '<td class="c-date ' + dcls + '"><span class="d mono">' + day + '</span>' +
         '<span class="wd">' + wd + "</span>" +
-        '<span class="lun">' + (r.lunar ? "음 " + r.lunar : "") + "</span></td>";
+        '<span class="lun' + (r.holiday ? " holname" : "") + '">' + (r.holiday ? esc(r.holiday) : r.lunar ? "음 " + r.lunar : "") + "</span></td>";
 
       var mt = r.mulTier === "sari" ? "t-sari" : r.mulTier === "mid" ? "t-mid" : "";
       h += '<td class="c-mul">' + (r.mul
@@ -231,6 +266,10 @@
       var m = hr.children[1].getBoundingClientRect().width;
       el.head.closest("table").style.setProperty("--sticky-mul", d + "px");
       el.head.closest("table").style.setProperty("--sticky-flow", (d + m) + "px");
+      // 배가 늘었으면(사이트 추가 등) 새 열이 보이도록 오른쪽 끝으로
+      var sc = document.querySelector(".scroller");
+      if (sc && state._boatN != null && boats.length > state._boatN) sc.scrollLeft = sc.scrollWidth;
+      state._boatN = boats.length;
     });
 
     var when = b.updatedAt ? new Date(b.updatedAt).toLocaleString("ko-KR") : "없음";

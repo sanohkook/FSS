@@ -11,6 +11,7 @@
     "tide:badatime": "node server/refreshTide.js --badatime"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "express": "^4.21.2",
     "xlsx": "^0.18.5"
   }

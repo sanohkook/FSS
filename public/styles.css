@@ -20,6 +20,7 @@
   --sat: #2657a6;
   --sun: #b23b3b;
   --wknd: #fbf3d0;
+  --hol: #f7dcda;
   --star: #e0a53c;
   --shadow: 0 1px 2px rgba(16, 39, 46, .06), 0 8px 24px rgba(16, 39, 46, .08);
   --flow-lo: #a9c2c8;
@@ -35,7 +36,7 @@
     --accent: #2bb6d4; --accent-deep: #7fd6e6; --accent-soft: #123840;
     --open: #4fbe8b; --few: #e0a53c; --full: #e5766b;
     --open-bg: #14332a; --few-bg: #322917; --full-bg: #351f1e;
-    --sat: #7ba7e6; --sun: #e58b8b; --wknd: #383417; --star: #ecc15c;
+    --sat: #7ba7e6; --sun: #e58b8b; --wknd: #383417; --hol: #3d2320; --star: #ecc15c;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .4);
     --flow-lo: #3a5960; --flow-hi: #2bb6d4; --on-accent: #06222b;
   }
@@ -47,7 +48,7 @@
   --accent: #2bb6d4; --accent-deep: #7fd6e6; --accent-soft: #123840;
   --open: #4fbe8b; --few: #e0a53c; --full: #e5766b;
   --open-bg: #14332a; --few-bg: #322917; --full-bg: #351f1e;
-  --sat: #7ba7e6; --sun: #e58b8b; --wknd: #383417; --star: #ecc15c;
+  --sat: #7ba7e6; --sun: #e58b8b; --wknd: #383417; --hol: #3d2320; --star: #ecc15c;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .4);
   --flow-lo: #3a5960; --flow-hi: #2bb6d4; --on-accent: #06222b;
 }
@@ -113,7 +114,9 @@ button[disabled] { opacity: .5; cursor: default; }
 .tabs button { border-radius: 999px; padding: 6px 14px; font-size: 13px; }
 .tabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 
-.boatbar { padding: 4px 2px 14px; }
+.boatbar { padding: 4px 2px 10px; }
+.mulbar { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; padding: 0 2px 12px; }
+.mulbar .bb-label { font-size: 11px; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; margin-right: 4px; }
 .bb-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
 .bb-head .bb-label { font-size: 11px; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; }
 .bb-head .bb-count { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
@@ -122,13 +125,13 @@ button[disabled] { opacity: .5; cursor: default; }
   gap: 6px 12px; align-items: start;
 }
 .bb-sitename {
-  display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+  display: flex; align-items: center; gap: 6px; justify-content: flex-start;
   font-size: 12px; font-weight: 600; color: var(--ink-2); padding-top: 3px; white-space: nowrap;
 }
-.bb-sitename::after { content: ":"; color: var(--ink-3); margin-left: -3px; }
+.bb-sitename::after { content: ":"; color: var(--ink-3); order: 1; }
 .bb-all {
   border: none; background: none; padding: 0 2px; font-size: 10.5px; color: var(--ink-3);
-  font-weight: 500; border-radius: 4px;
+  font-weight: 500; border-radius: 4px; order: 2;
 }
 .bb-all:hover { color: var(--accent); border: none; }
 .bb-chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -148,6 +151,13 @@ button[disabled] { opacity: .5; cursor: default; }
 
 .tablecard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
 .scroller { overflow: auto; max-height: calc(100vh - 210px); overscroll-behavior: contain; }
+/* 좌우 스크롤이 있음을 항상 보이게 (맥은 기본적으로 스크롤바를 숨김) */
+.scroller { scrollbar-width: thin; scrollbar-color: var(--ink-3) var(--surface-2); }
+.scroller::-webkit-scrollbar { height: 12px; width: 12px; }
+.scroller::-webkit-scrollbar-track { background: var(--surface-2); }
+.scroller::-webkit-scrollbar-thumb { background: var(--ink-3); border-radius: 999px; border: 3px solid var(--surface-2); }
+.scroller::-webkit-scrollbar-thumb:hover { background: var(--ink-2); }
+.scroller::-webkit-scrollbar-corner { background: var(--surface-2); }
 table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13.5px; }
 col.c-w-date { width: 60px; } col.c-w-mul { width: 76px; } col.c-w-flow { width: 62px; }
 thead th {
@@ -165,6 +175,8 @@ th.c-flow, td.c-flow {
 thead th.c-date, thead th.c-mul, thead th.c-flow { z-index: 5; background: var(--surface-2); }
 tbody tr.wknd-sat td.c-date, tbody tr.wknd-sat td.c-mul, tbody tr.wknd-sat td.c-flow,
 tbody tr.wknd-sun td.c-date, tbody tr.wknd-sun td.c-mul, tbody tr.wknd-sun td.c-flow { background: var(--wknd); }
+tbody tr.hol td.c-date, tbody tr.hol td.c-mul, tbody tr.hol td.c-flow { background: var(--hol); }
+td.c-date .lun.holname { color: var(--sun); font-weight: 600; }
 tbody tr.today td.c-date { box-shadow: inset 3px 0 0 var(--accent); }
 thead th.boat-h {
   letter-spacing: 0; font-size: 12.5px; color: var(--ink); font-weight: 600; text-align: center;
@@ -177,6 +189,7 @@ thead th.boat-h .bs { display: block; font-size: 10px; color: var(--ink-3); font
 tbody td { padding: 7px 8px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr.wknd-sat, tbody tr.wknd-sun { background: var(--wknd); }
+tbody tr.hol { background: var(--hol); }
 tbody tr.today { box-shadow: inset 3px 0 0 var(--accent); }
 tbody tr.mine td.c-date { font-weight: 600; }
 
