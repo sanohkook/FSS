@@ -314,17 +314,16 @@
 
       h += boats.map(function (bt) {
         var c = r.cells[bt.id];
-        var starOn = mine[planKey(r.date, bt.id)] ? " on" : "";
+        var mineCls = mine[planKey(r.date, bt.id)] ? " mine" : "";
+        var da = ' data-date="' + r.date + '" data-boat="' + esc(bt.id) + '"';
         if (!c) {
-          return '<td class="c-boat"><div class="cell miss s-unknown">' +
-            '<span class="body" data-url="" title="예약 정보 없음"><span class="st">–</span></span>' +
-            '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button></div></td>";
+          return '<td class="c-boat"><div class="cell miss s-unknown' + mineCls + '"' + da +
+            '><span class="body" data-url=""><span class="st">–</span></span></div></td>';
         }
         if (c.status === "link") {
-          return '<td class="c-boat"><div class="cell s-link">' +
-            '<span class="body" data-url="' + esc(c.url) + '" title="' + esc(bt.name) + " 예약 페이지 (파싱 규칙 없음)\">" +
-            '<span class="st">✕</span><span class="sub">예약 페이지</span></span>' +
-            '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button></div></td>";
+          return '<td class="c-boat"><div class="cell s-link' + mineCls + '"' + da +
+            ' title="' + esc(bt.name) + ' 예약 페이지 (파싱 규칙 없음)">' +
+            '<span class="body" data-url="' + esc(c.url) + '"><span class="st">✕</span><span class="sub">예약 페이지</span></span></div></td>';
         }
         var label, sub = "", open = c.status === "few" || c.status === "open";
         if (c.status === "full") { label = "마감"; sub = c.total ? c.total + "/" + c.total : ""; }
@@ -333,12 +332,11 @@
           sub = c.total ? (c.total - c.remain) + "/" + c.total : "";
         } else { label = "예약 확인"; sub = "인원정보 없음"; }
         var fx = fishAbbr(c.fish);
-        return '<td class="c-boat"><div class="cell s-' + c.status + (open ? " has-seat" : "") + '">' +
-          '<span class="body" data-url="' + esc(c.url) + '" title="' + esc(bt.name) + " · " + r.date +
-          (c.fish ? " · " + esc(c.fish) : "") + (open ? ' 예약하기' : ' 예약 페이지') + '">' +
+        return '<td class="c-boat"><div class="cell s-' + c.status + (open ? " has-seat" : "") + mineCls + '"' + da +
+          ' title="' + esc(bt.name) + " · " + r.date + (c.fish ? " · " + esc(c.fish) : "") + '">' +
+          '<span class="body" data-url="' + esc(c.url) + '">' +
           '<span class="st">' + (fx ? '<span class="fx">' + esc(fx) + "</span> " : "") + esc(label) + "</span>" +
           (sub ? '<span class="sub mono">' + esc(sub) + "</span>" : "") + "</span>" +
-          '<button class="star' + starOn + '" data-date="' + r.date + '" data-boat="' + esc(bt.id) + '" aria-label="나의 예약 토글">' + (starOn ? "★" : "☆") + "</button>" +
           "</div></td>";
       }).join("");
 
@@ -382,43 +380,31 @@
   }
 
   // ---------- table interactions ----------
+  // 한 번 탭 = 나의 예약 토글(형광초록), 두 번 탭 = 예약 페이지 열기
+  var tapCell = null, tapTimer;
+  function toggleMine(date, boat) {
+    api("POST", "/api/myplan", { date: date, boatId: boat }).then(function (list) {
+      state.board.myplan = list; render();
+    }).catch(function (err) { toast("저장 실패: " + err.message); });
+  }
   el.body.addEventListener("click", function (e) {
-    var star = e.target.closest(".star");
-    if (star) {
-      var date = star.getAttribute("data-date"), boat = star.getAttribute("data-boat");
-      api("POST", "/api/myplan", { date: date, boatId: boat }).then(function (list) {
-        state.board.myplan = list;
-        render();
-      }).catch(function (err) { toast("저장 실패: " + err.message); });
+    var cell = e.target.closest(".cell");
+    if (!cell || !cell.getAttribute("data-date")) return;
+    var date = cell.getAttribute("data-date"), boat = cell.getAttribute("data-boat");
+    var url = (cell.querySelector(".body") || {}).getAttribute && cell.querySelector(".body").getAttribute("data-url");
+
+    if (tapCell === cell) {
+      clearTimeout(tapTimer); tapCell = null;
+      if (url) window.open(url, "_blank", "noopener");
       return;
     }
-    var body = e.target.closest(".body");
-    if (!body) return;
-    var url = body.getAttribute("data-url");
-    if (!url) return;
-    var cell = body.closest(".cell");
-    // 잔여석(예약 가능) 칸은 두 번 터치해야 이동 — 실수 방지
-    if (cell && cell.classList.contains("has-seat")) {
-      if (armedCell === body) {
-        clearTimeout(armTimer); armedCell = null;
-        if (cell) cell.classList.remove("armed");
-        window.open(url, "_blank", "noopener");
-      } else {
-        if (armedCell) armedCell.closest(".cell").classList.remove("armed");
-        armedCell = body;
-        cell.classList.add("armed");
-        toast("한 번 더 누르면 예약 페이지가 열립니다");
-        clearTimeout(armTimer);
-        armTimer = setTimeout(function () {
-          if (armedCell) armedCell.closest(".cell").classList.remove("armed");
-          armedCell = null;
-        }, 2500);
-      }
-      return;
-    }
-    window.open(url, "_blank", "noopener");
+    tapCell = cell;
+    clearTimeout(tapTimer);
+    tapTimer = setTimeout(function () {
+      tapCell = null;
+      toggleMine(date, boat);
+    }, 300);
   });
-  var armedCell = null, armTimer;
 
 
   // ---------- 표 좌우 스크롤 ----------
@@ -459,13 +445,19 @@
   document.getElementById("refreshBtn").onclick = function () {
     var btn = this;
     btn.disabled = true;
-    btn.textContent = "…";
+    btn.classList.add("busy");
+    var dots = 0;
+    btn.textContent = "Waiting";
+    var anim = setInterval(function () {
+      dots = (dots + 1) % 4;
+      btn.textContent = "Waiting" + Array(dots + 1).join(".");
+    }, 500);
     api("POST", "/api/refresh").then(function (r) {
       var days = (r.summary || []).map(function (s) { return s.site + " " + s.days + "일"; }).join(" · ");
       toast(r.ok ? "새로고침 완료 — " + days : (r.message || "새로고침 실패"));
       return load();
     }).catch(function (err) { toast("새로고침 실패: " + err.message); })
-      .finally(function () { btn.disabled = false; btn.textContent = "Refresh"; });
+      .finally(function () { clearInterval(anim); btn.disabled = false; btn.classList.remove("busy"); btn.textContent = "Refresh"; });
   };
 
   // ---------- overlay ----------

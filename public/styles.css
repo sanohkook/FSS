@@ -285,18 +285,18 @@ td.c-boat { padding: 5px 6px; border-left: 1px solid var(--line-2); }
 .cell.s-link .body { cursor: pointer; }
 .cell.s-link .body:hover .sub { color: var(--accent); }
 .cell.has-seat { border-color: color-mix(in srgb, var(--open) 45%, var(--line)); background: var(--open-bg); }
-.cell.armed { outline: 2px solid var(--accent); outline-offset: 1px; }
-.cell.armed .st::after { content: " ↗"; color: var(--accent); }
-.cell.has-seat .body { cursor: pointer; }
 .cell.has-seat .body:hover .st { text-decoration: underline; }
-.cell .st .go { font-weight: 700; font-size: 10px; }
 .cell.has-seat .sub { color: var(--accent); }
-.cell .star {
-  border: none; background: none; padding: 2px; font-size: 14px; line-height: 1; color: var(--ink-3);
-  border-radius: 6px; flex-shrink: 0;
+.cell { cursor: pointer; }
+#refreshBtn.busy { opacity: .75; cursor: progress; }
+/* 나의 예약 = 형광 초록 배경 */
+.cell.mine { background: #7dfc9a !important; border-color: #22c55e; }
+.cell.mine .st, .cell.mine .sub, .cell.mine .st .fx { color: #0b3d1c !important; }
+:root[data-theme="dark"] .cell.mine, :root:not([data-theme="light"]) .cell.mine {
+  background: #1f9d4d !important; border-color: #34d36b;
 }
-.cell .star:hover { color: var(--star); border: none; }
-.cell .star.on { color: var(--star); }
+:root[data-theme="dark"] .cell.mine .st, :root:not([data-theme="light"]) .cell.mine .st,
+:root[data-theme="dark"] .cell.mine .sub, :root:not([data-theme="light"]) .cell.mine .sub { color: #eafff0 !important; }
 .cell.miss { border-style: dashed; opacity: .7; }
 
 .empty { padding: 40px 16px; text-align: center; color: var(--ink-2); }
@@ -390,7 +390,6 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
   .cell .st { font-size: 11px; }
   .cell .st .fx { font-size: 9px; }
   .cell .sub { font-size: 9px; }
-  .cell .star { font-size: 16px; padding: 3px; }
   tbody tr.mrow td { font-size: 12px; padding: 5px 10px; }
 
   .panel.sheet, .panel.modal { width: 100%; max-width: 100%; border-radius: 0; }
