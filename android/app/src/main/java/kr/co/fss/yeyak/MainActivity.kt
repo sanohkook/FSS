@@ -2,7 +2,6 @@ package kr.co.fss.yeyak
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -74,30 +73,9 @@ class MainActivity : Activity() {
             }
         }
 
-        // 첫 실행(또는 데이터 없음/오래됨) → 백그라운드로 예약 사이트 조회
-        Thread {
-            try {
-                val store = Store(applicationContext)
-                val avail = store.avail()
-                val updated = avail.optString("updatedAt", "")
-                val old = updated.isEmpty() || olderThanHours(updated, 6)
-                if (old) Scrape.refreshAll(applicationContext, store)
-            } catch (e: Exception) {
-                Log.w("fss", "initial refresh", e)
-            } finally {
-                runOnUiThread { web.reload() }
-            }
-        }.start()
-
+        // 자동 갱신 없음 — 예약 현황은 화면의 Refresh 버튼을 눌렀을 때만 조회한다.
         if (savedInstanceState != null) web.restoreState(savedInstanceState) else web.loadUrl(base)
     }
-
-    private fun olderThanHours(isoZ: String, h: Int): Boolean = try {
-        val f = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
-        f.timeZone = java.util.TimeZone.getTimeZone("UTC")
-        val t = f.parse(isoZ)?.time ?: return true
-        System.currentTimeMillis() - t > h * 3600_000L
-    } catch (e: Exception) { true }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)

@@ -19,13 +19,10 @@ npm start        # http://localhost:3300
 
 ## 예약 현황 갱신
 
-- **보드의 `갱신` 버튼** 또는 `npm run scrape` → 3개월치 배별 잔여석을 다시 긁어 `data/avail.json` 갱신.
+- **자동 갱신 없음.** 보드의 **`Refresh` 버튼**(또는 `npm run scrape`)을 눌렀을 때만
+  3개월치 배별 잔여석을 다시 긁어 `data/avail.json` 을 갱신한다.
 - 서버는 요청마다 파일을 읽으므로 재시작 불필요.
-- 자동화: `update_avail.sh` 를 launchd 로 6시간마다 실행 (기존 plist 재사용).
-
-```bash
-crontab 예시:  0 */6 * * *  /Users/sanoh/Documents/code/FSS/update_avail.sh
-```
+- 안드로이드 앱도 동일 — 실행 시 자동 조회하지 않고 화면의 `Refresh` 를 눌러야 갱신된다.
 
 ## 사이트 추가 / 삭제
 
