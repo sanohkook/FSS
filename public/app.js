@@ -218,8 +218,20 @@
     return s;
   }
 
+  var booted = false;
   function render() {
     var b = state.board;
+    // 첫 실행: 모든 배 숨김 상태로 시작 → 사용자가 볼 배를 고른다
+    if (!booted) {
+      booted = true;
+      try {
+        if (localStorage.getItem("ijb.hiddenBoats") === null) {
+          (b.boats || []).forEach(function (x) { hidden.add(x.id); });
+          saveHidden();
+          bbCollapsed = false;
+        }
+      } catch (e) {}
+    }
     if (el.mLabel) {
       var mm = state.months.map(function (m) { return +m.slice(5, 7) + "월"; });
       el.mLabel.innerHTML = '<span class="yr">' + state.months[0].slice(0, 4) + "</span> &nbsp;" + mm.join(" · ");
@@ -230,20 +242,20 @@
 
     var boats = visibleBoats();
     el.cols.innerHTML =
-      '<col class="c-w-date"><col class="c-w-mul"><col class="c-w-flow">' +
+      '<col class="c-w-date"><col class="c-w-mul">' +
       boats.map(function () { return '<col class="c-w-boat">'; }).join("");
 
     el.head.innerHTML =
-      '<tr><th class="c-date">날짜</th><th class="c-mul">물때</th><th class="c-flow">조류</th>' +
+      '<tr><th class="c-date">날짜</th><th class="c-mul">물때·조류</th>' +
       boats.map(function (bt) {
         return '<th class="boat-h" data-boat="' + esc(bt.id) + '" title="' + esc(bt.site) + " · " + esc(bt.name) + '">' +
           '<span class="bn">' + esc(bt.name) + "</span></th>";
       }).join("") +
       "</tr>";
 
-    // 표 전체 폭 = 고정 3열 + 배 수 × 열폭 (모바일에서 더 좁게)
+    // 표 전체 폭 = 앞 2열(날짜·물때) + 배 수 × 열폭 (모바일에서 더 좁게)
     var mobile = window.matchMedia("(max-width: 640px)").matches;
-    var FROZEN_W = mobile ? 136 : 198;
+    var FROZEN_W = mobile ? 92 : 138;
     var BOAT_W = mobile ? 92 : 112;
     var tbl = el.head.closest("table");
     if (tbl) tbl.style.width = FROZEN_W + boats.length * BOAT_W + "px";
@@ -265,7 +277,7 @@
       var sep = "";
       if (r.date.slice(0, 7) !== curMonth) {
         curMonth = r.date.slice(0, 7);
-        sep = '<tr class="mrow"><td colspan="' + (3 + boats.length) + '">' +
+        sep = '<tr class="mrow"><td colspan="' + (2 + boats.length) + '">' +
           curMonth.slice(0, 4) + "년 " + +curMonth.slice(5, 7) + "월</td></tr>";
       }
       var wd = r.weekday;
@@ -284,18 +296,17 @@
         '<span class="wd">' + wd + "</span>" +
         '<span class="lun' + (r.holiday ? " holname" : "") + '">' + (r.holiday ? esc(r.holiday) : r.lunar ? "음 " + r.lunar : "") + "</span></td>";
 
+      // 물때 + 조류 세기(셀 배경 채움)를 한 칸에
       var mt = r.mulTier === "sari" ? "t-sari" : r.mulTier === "mid" ? "t-mid" : "";
-      h += '<td class="c-mul">' + (r.mul
-        ? '<span class="mul ' + mt + '">' + esc(r.mul) + (r.mulTier === "sari" ? '<span class="tag">사리</span>' : "") + "</span>"
-        : "&mdash;") + "</td>";
-
-      if (r.flow != null) {
-        h += '<td class="c-flow"><div class="flow' + (r.est ? " est" : "") + '">' +
-          '<span class="bar"><span style="width:' + Math.max(0, Math.min(100, r.flow)) + '%"></span></span>' +
-          '<span class="val mono">' + esc(r.flowLabel) + "</span></div></td>";
-      } else {
-        h += '<td class="c-flow">&mdash;</td>';
-      }
+      var fpct = r.flow != null ? Math.max(0, Math.min(100, r.flow)) : 0;
+      var fnum = r.flow == null ? "" : r.est ? "≈" + r.flow
+        : r.flowLabel === "최대" ? "최대" : r.flowLabel === "최소" ? "최소" : String(r.flow);
+      h += '<td class="c-mul" style="--f:' + fpct + '%" title="조류 세기 ' + esc(r.flowLabel || "") + '">' +
+        (r.mul
+          ? '<span class="mul ' + mt + '">' + esc(r.mul) + (r.mulTier === "sari" ? '<span class="tag">사리</span>' : "") + "</span>"
+          : "&mdash;") +
+        (fnum ? '<span class="fnum' + (r.est ? " est" : "") + '">' + esc(fnum) + "</span>" : "") +
+        "</td>";
 
       h += boats.map(function (bt) {
         var c = r.cells[bt.id];
@@ -331,18 +342,13 @@
       return h;
     }).join("");
 
-    el.body.innerHTML = rowsHtml ||
-      '<tr><td class="empty" colspan="' + (3 + boats.length) + '">이 달 데이터가 없습니다.</td></tr>';
+    var hintRow = boats.length === 0
+      ? '<tr><td class="empty" colspan="2">위 <b>배 표시</b> 에서 볼 배를 선택하세요 →</td></tr>'
+      : "";
+    el.body.innerHTML = (hintRow + rowsHtml) ||
+      '<tr><td class="empty" colspan="' + (2 + boats.length) + '">이 달 데이터가 없습니다.</td></tr>';
 
-    // 엑셀 틀고정: 실제 열 너비를 재서 sticky 오프셋 설정
     requestAnimationFrame(function () {
-      var hr = el.head.querySelector("tr");
-      if (!hr) return;
-      var d = hr.children[0].getBoundingClientRect().width;
-      var m = hr.children[1].getBoundingClientRect().width;
-      var tbl = el.head.closest("table");
-      tbl.style.setProperty("--sticky-mul", d + "px");
-      tbl.style.setProperty("--sticky-flow", (d + m) + "px");
       // 배가 늘었으면(사이트 추가 등) 새 열이 보이도록 오른쪽 끝으로
       var sc = document.querySelector(".scroller");
       if (sc && state._boatN != null && boats.length > state._boatN) sc.scrollLeft = sc.scrollWidth;
@@ -422,13 +428,13 @@
   document.getElementById("refreshBtn").onclick = function () {
     var btn = this;
     btn.disabled = true;
-    btn.textContent = "갱신 중…";
+    btn.textContent = "…";
     api("POST", "/api/refresh").then(function (r) {
       var days = (r.summary || []).map(function (s) { return s.site + " " + s.days + "일"; }).join(" · ");
-      toast(r.ok ? "갱신 완료 — " + days : (r.message || "갱신 실패"));
+      toast(r.ok ? "새로고침 완료 — " + days : (r.message || "새로고침 실패"));
       return load();
-    }).catch(function (err) { toast("갱신 실패: " + err.message); })
-      .finally(function () { btn.disabled = false; btn.textContent = "갱신"; });
+    }).catch(function (err) { toast("새로고침 실패: " + err.message); })
+      .finally(function () { btn.disabled = false; btn.textContent = "Refresh"; });
   };
 
   // ---------- overlay ----------
@@ -453,7 +459,7 @@
     var p = document.createElement("div");
     p.className = "panel sheet";
     p.innerHTML =
-      '<div class="panel-head"><h2>예약 사이트 · 배 추가</h2><button class="icon-btn" data-close>✕</button></div>' +
+      '<div class="panel-head"><h2>예약 사이트 추가·관리</h2><button class="icon-btn" data-close>✕</button></div>' +
       '<div class="panel-body" id="setBody"></div>' +
       '<div class="panel-foot"><button class="btn-primary" data-close>완료</button></div>';
     openOverlay("right", p);
