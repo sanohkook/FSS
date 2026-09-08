@@ -305,6 +305,17 @@
       updateHScroll();
     });
 
+    var upd = document.getElementById("updAge");
+    if (upd) {
+      if (b.updatedAt) {
+        var mins = Math.round((Date.now() - new Date(b.updatedAt)) / 60000);
+        var rel = mins < 1 ? "방금" : mins < 60 ? mins + "분 전" : Math.round(mins / 60) + "시간 전";
+        upd.textContent = "예약 " + rel;
+        upd.classList.toggle("stale", mins > 180);
+        upd.title = "예약 현황 마지막 갱신: " + new Date(b.updatedAt).toLocaleString("ko-KR");
+      } else { upd.textContent = ""; }
+    }
+
     var when = b.updatedAt ? new Date(b.updatedAt).toLocaleString("ko-KR") : "없음";
     el.footNote.innerHTML =
       "<b>물때·조류</b>는 국립해양조사원 인천 조석예보 기반. 조류 %는 그날 조차의 상대 세기, 물때는 음력 기준 계산. " +
