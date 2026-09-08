@@ -33,9 +33,15 @@ crontab 예시:  0 */6 * * *  /Users/sanoh/Documents/code/FSS/update_avail.sh
 
 | 종류 | 예 | 배별 인원 조회 |
 |---|---|---|
-| `xe` | 칸피싱·제일낚시 등 XpressEngine `mid=bk` | O |
-| `sunsang` | 동양낚시 등 `*.sunsang24.com` | O |
-| `generic` | 그 외 | X (링크 열만) |
+| `xe` | 칸피싱·제일낚시·팀만수·아라호 등 XpressEngine `mid=bk` | O (코드) |
+| `sunsang` | 동양낚시 등 `*.sunsang24.com` | O (코드) |
+| `recipe` | 그 외 — 추가 시 AI가 파싱 규칙 1회 생성 | O (코드, 규칙은 저장) |
+| `generic` | AI 실패 또는 `ANTHROPIC_API_KEY` 없음 | X (예약 현황 열에 링크만) |
+
+**AI 파싱 레시피:** 알 수 없는 플랫폼을 추가하면 `server/scrape/ai.js` 가 Claude(`ANTHROPIC_API_KEY` 필요)로
+페이지를 1회 분석해 정규식 레시피(`recipe`)를 만들어 `data/sites.json` 에 저장한다.
+이후 모든 조회는 `server/scrape/recipe.js` 가 토큰 없이 처리한다.
+키가 없으면 그 사이트는 링크 전용(X 표시)으로 추가된다.
 
 설정은 `data/sites.json` 에 저장된다.
 
