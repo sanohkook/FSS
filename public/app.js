@@ -65,26 +65,24 @@
   };
 
   // ---------- load / render ----------
-  var savedMonth = null;
-  try {
-    var sm = localStorage.getItem("ijb.month");
+  // 이번 달 + 2개월을 세로로 이어서 한 번에 표시 (탭 선택 없음)
+  function load() {
     var now = new Date();
     var cur = now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2);
-    if (sm && /^\d{4}-\d{2}$/.test(sm) && sm >= cur && sm <= shiftMonth(cur, 2)) savedMonth = sm;
-  } catch (e) {}
-
-  function load(month) {
-    if (month) { try { localStorage.setItem("ijb.month", month); } catch (e) {} }
-    return api("GET", "/api/board?month=" + encodeURIComponent(month || savedMonth || "")).then(function (b) {
-      state.board = b;
-      state.month = b.month;
-      if (!state.months.length) {
-        state.months = [b.today.slice(0, 7), shiftMonth(b.today.slice(0, 7), 1), shiftMonth(b.today.slice(0, 7), 2)];
-      }
-      // 저장된 달이 유효 범위를 벗어나면 정리
-      if (state.months.indexOf(state.month) < 0) {
-        try { localStorage.removeItem("ijb.month"); } catch (e) {}
-      }
+    var months = [cur, shiftMonth(cur, 1), shiftMonth(cur, 2)];
+    return Promise.all(months.map(function (m) {
+      return api("GET", "/api/board?month=" + encodeURIComponent(m));
+    })).then(function (parts) {
+      var b0 = parts[0];
+      state.months = months;
+      state.board = {
+        today: b0.today,
+        updatedAt: b0.updatedAt,
+        sites: b0.sites,
+        boats: b0.boats,
+        myplan: b0.myplan,
+        rows: parts.reduce(function (acc, p) { return acc.concat(p.rows); }, []),
+      };
       render();
     });
   }
@@ -181,18 +179,11 @@
 
   function render() {
     var b = state.board;
-    el.mLabel.innerHTML = '<span class="yr">' + b.month.slice(0, 4) + "</span> &nbsp;" + +b.month.slice(5, 7) + "월";
-    el.prevM.disabled = b.month <= state.months[0];
-    el.nextM.disabled = b.month >= state.months[state.months.length - 1];
+    if (el.mLabel) {
+      var mm = state.months.map(function (m) { return +m.slice(5, 7) + "월"; });
+      el.mLabel.innerHTML = '<span class="yr">' + state.months[0].slice(0, 4) + "</span> &nbsp;" + mm.join(" · ");
+    }
     el.planCount.textContent = (b.myplan || []).length;
-
-    el.tabs.innerHTML = state.months.map(function (m) {
-      return '<button data-m="' + m + '" aria-pressed="' + (m === b.month) + '">' + +m.slice(5, 7) + "월</button>";
-    }).join("");
-    el.tabs.querySelectorAll("[data-m]").forEach(function (btn) {
-      btn.onclick = function () { load(btn.getAttribute("data-m")); };
-    });
-
     renderBoatBar();
     renderFlowBar();
 
@@ -221,7 +212,14 @@
       }
       return true;
     });
+    var curMonth = "";
     var rowsHtml = shownRows.map(function (r) {
+      var sep = "";
+      if (r.date.slice(0, 7) !== curMonth) {
+        curMonth = r.date.slice(0, 7);
+        sep = '<tr class="mrow"><td colspan="' + (3 + boats.length) + '">' +
+          curMonth.slice(0, 4) + "년 " + +curMonth.slice(5, 7) + "월</td></tr>";
+      }
       var wd = r.weekday;
       var cls = [];
       if (r.holiday) cls.push("hol");
@@ -233,7 +231,7 @@
 
       var dcls = r.holiday || wd === "일" ? "sun" : wd === "토" ? "sat" : "";
       var day = +r.date.slice(8, 10);
-      var h = '<tr class="' + cls.join(" ") + '">';
+      var h = sep + '<tr class="' + cls.join(" ") + '">';
       h += '<td class="c-date ' + dcls + '"><span class="d mono">' + day + '</span>' +
         '<span class="wd">' + wd + "</span>" +
         '<span class="lun' + (r.holiday ? " holname" : "") + '">' + (r.holiday ? esc(r.holiday) : r.lunar ? "음 " + r.lunar : "") + "</span></td>";
@@ -244,9 +242,8 @@
         : "&mdash;") + "</td>";
 
       if (r.flow != null) {
-        var col = "color-mix(in srgb, var(--flow-hi) " + Math.max(0, Math.min(100, r.flow)) + "%, var(--flow-lo))";
         h += '<td class="c-flow"><div class="flow' + (r.est ? " est" : "") + '">' +
-          '<span class="bar"><span style="width:' + r.flow + "%;background:" + col + '"></span></span>' +
+          '<span class="bar"><span style="width:' + Math.max(0, Math.min(100, r.flow)) + '%"></span></span>' +
           '<span class="val mono">' + esc(r.flowLabel) + "</span></div></td>";
       } else {
         h += '<td class="c-flow">&mdash;</td>';
@@ -338,8 +335,6 @@
     if (body && body.getAttribute("data-url")) window.open(body.getAttribute("data-url"), "_blank", "noopener");
   });
 
-  el.prevM.onclick = function () { load(shiftMonth(state.month, -1)); };
-  el.nextM.onclick = function () { load(shiftMonth(state.month, 1)); };
 
   // ---------- 표 좌우 스크롤 ----------
   var hbar = document.getElementById("hscroll");
@@ -383,7 +378,7 @@
     api("POST", "/api/refresh").then(function (r) {
       var days = (r.summary || []).map(function (s) { return s.site + " " + s.days + "일"; }).join(" · ");
       toast(r.ok ? "갱신 완료 — " + days : (r.message || "갱신 실패"));
-      return load(state.month);
+      return load();
     }).catch(function (err) { toast("갱신 실패: " + err.message); })
       .finally(function () { btn.disabled = false; btn.textContent = "갱신"; });
   };
@@ -414,7 +409,7 @@
       '<div class="panel-body" id="setBody"></div>' +
       '<div class="panel-foot"><button class="btn-primary" data-close>완료</button></div>';
     openOverlay("right", p);
-    p.querySelectorAll("[data-close]").forEach(function (b) { b.onclick = function () { closeOverlay(); load(state.month); }; });
+    p.querySelectorAll("[data-close]").forEach(function (b) { b.onclick = function () { closeOverlay(); load(); }; });
     drawSettings(p);
   }
   function drawSettings(p) {
