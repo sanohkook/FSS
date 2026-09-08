@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>인천 물때 예약판</title>
+  <meta name="description" content="인천 앞바다 배낚시 물때·조류·선박 예약 현황을 한 판에서" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="head-inner">
+      <div class="brand">
+        <h1><span class="tick" aria-hidden="true">◧</span>인천 물때 예약판</h1>
+        <p>물때·조류 <a href="https://www.badatime.com/158/daily" target="_blank" rel="noopener">바다타임 · 인천(158)</a> · 배낚시 예약 현황</p>
+      </div>
+      <nav class="monthnav" aria-label="월 이동">
+        <button class="icon-btn" id="prevM" aria-label="이전 달">‹</button>
+        <span class="label" id="mLabel"></span>
+        <button class="icon-btn" id="nextM" aria-label="다음 달">›</button>
+      </nav>
+      <div class="actions">
+        <button class="icon-btn" id="themeBtn" aria-label="테마 전환">◐</button>
+        <button id="planBtn" class="badge">나의 예약 <span class="n" id="planCount">0</span></button>
+        <button id="settingsBtn">설정 · 배 추가</button>
+        <button class="btn-primary" id="refreshBtn">갱신</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="intro">
+      <span class="dot" aria-hidden="true"></span>
+      <div id="introText">
+        오늘부터 <b>향후 3개월</b> 물때·조류·배별 예약 가능 인원을 보여줍니다.
+        예약 인원은 각 예약 사이트를 <b>서버가 직접 조회</b>한 값이라 실시간과 차이가 있을 수 있어요.
+        최신값이 필요하면 <b>갱신</b> 버튼을 누르세요. 셀을 클릭하면 그 배 예약 페이지가 열리고, ☆ 를 누르면 나의 예약에 저장됩니다.
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs" aria-label="월 선택"></div>
+    <div class="boatbar" id="boatbar" aria-label="배 표시/숨김"></div>
+    <div class="legend">
+      <span class="grp"><span class="mul t-sari" style="padding:1px 6px">7·8물</span> 큰 물(사리)</span>
+      <span class="grp"><span class="mul t-mid" style="padding:1px 6px">5·6·9·10물</span> 중간</span>
+      <span class="grp"><span class="chip s-open">여유</span><span class="chip s-few">잔여 임박</span><span class="chip s-full">마감</span><span class="chip s-unknown">예약 확인</span></span>
+    </div>
+
+    <div class="tablecard">
+      <div class="scroller">
+        <table id="grid">
+          <colgroup id="gridCols"></colgroup>
+          <thead id="gridHead"></thead>
+          <tbody id="gridBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="foot-note" id="footNote"></p>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "khan",
+    "name": "칸피싱",
+    "kind": "xe",
+    "listUrl": "https://khanfishing.com/index.php?mid=bk&year={y}&month={m}&mode=list",
+    "dayUrl": "https://khanfishing.com/index.php?mid=bk&year={y}&month={m}&day={d}&mode=list",
+    "enabled": true
+  },
+  {
+    "id": "dy",
+    "name": "동양낚시",
+    "kind": "sunsang",
+    "listUrl": "https://dyfishing.sunsang24.com/ship/schedule_fleet/{y}{m}",
+    "dayUrl": "https://dyfishing.sunsang24.com/ship/schedule_fleet/{y}{m}",
+    "enabled": true
+  },
+  {
+    "id": "jeil",
+    "name": "제일낚시",
+    "kind": "xe",
+    "listUrl": "https://jnaksi.com/index.php?mid=bk&year={y}&month={m}&mode=list",
+    "dayUrl": "https://jnaksi.com/index.php?mid=bk&year={y}&month={m}&day={d}&mode=list",
+    "enabled": true
+  }
+]

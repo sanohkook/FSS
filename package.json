@@ -1,0 +1,15 @@
+{
+  "name": "incheon-tide-board",
+  "version": "1.0.0",
+  "description": "인천 앞바다 배낚시 물때·조류·선박 예약 현황 로컬 웹서버",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server/index.js",
+    "scrape": "node server/scrape/index.js",
+    "tide": "node server/refreshTide.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

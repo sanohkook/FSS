@@ -1,56 +1,49 @@
-# 예약현황 자동 갱신 루틴 지침
+# 인천 물때 예약판 — 운영 안내
 
-`인천물때예약판.html` 의 예약현황(AVAIL) 을 최신으로 유지한다.
-클라우드 샌드박스는 예약 사이트 직접 접속(curl/python)이 프록시에서 403으로 막히므로
-**반드시 WebFetch 도구**로 가져온다. (`scrape_avail.py` 는 로컬 실행용, 루틴에서 쓰지 말 것.)
+정적 아티팩트에서 **맥 로컬 웹서버**로 전환됨. 예약 사이트는 서버가 직접 조회한다.
 
-## 1. 대상 URL (오늘이 속한 달 M, 다음 달 M+1 기준)
+## 실행
 
-- 칸피싱: `https://khanfishing.com/index.php?mid=bk&year=YYYY&month=MM&mode=list`  (M, M+1)
-- 제일낚시: `https://jnaksi.com/index.php?mid=bk&year=YYYY&month=MM&mode=list`  (M, M+1)
-- 동양낚시: `https://dyfishing.sunsang24.com/ship/schedule_fleet/YYYYMM`  (M, M+1, M+2)
-
-각 URL 에 WebFetch, 프롬프트는 "각 날짜별 배들의 예약 상태를 화면 그대로 옮겨라.
-배마다 `예약완료`/`예약마감` 인지 `남은자리 N명` 인지 `배정비일` 인지. 날짜별 한 줄:
-`YYYY-MM-DD: 배이름=남은자리 N명, 배이름=예약완료, ...`. 해석 금지, 가능한 모든 날짜." 로.
-
-## 2. 날짜별 상태 판정
-
-그 날짜의 모든 배 중 **남은자리 최댓값** 기준:
-- ≥ 4 → `{"s":"open","n":"N석"}`  (N = 최댓값)
-- 1~3 → `{"s":"few","n":"N석"}`
-- 배가 전부 예약완료/예약마감/배정비일 → `{"s":"full"}`
-- 그 날짜 정보가 아예 없으면 생략
-
-`배정비일` 인 배는 계산에서 제외. 오늘 이전 날짜는 넣어도 되고 빼도 된다.
-
-## 3. HTML 갱신
-
-`인천물때예약판.html` 에서 아래 두 주석 사이 한 줄을 통째로 교체:
-
-```
-<!-- AVAIL:START (scrape_avail.py 가 이 블록을 자동 갱신) -->
-<script>window.AVAIL={...};window.AVAIL_UPDATED="ISO8601Z";if(window.__renderAvail)window.__renderAvail();</script>
-<!-- AVAIL:END -->
+```bash
+npm install      # 최초 1회 (express)
+npm start        # http://localhost:3300
 ```
 
-- `window.AVAIL` 형식: `{"khan":{"2026-10-09":{"s":"few","n":"3석"},...},"jeil":{...},"dy":{...}}`
-  (사이트 id 는 반드시 `khan` / `jeil` / `dy`)
-- `window.AVAIL_UPDATED` 는 지금 UTC 시각 `2026-01-01T00:00:00Z` 형식
-- `avail.js` 도 같은 내용으로 갱신(선택)
+- 물때·조류: `data/tide.json` (2026–2027 번들). 갱신 없이 동작 — 바다타임도 2028년 자료 없음.
+  - 근월만 새로 받기: `npm run tide` (바다타임, **비영리 개인용에 한함**).
+  - 공식 소스: `npm run tide -- --khoa` — 국립해양조사원 조석예보 API. 무료 인증키 필요
+    (`export KHOA_KEY=...`, https://www.khoa.go.kr/oceangrid/). 약관상 자유, 2028년 이후에도 사용 가능.
+  - 물때(3물/조금/사리)는 음력일로 계산: `n=(음력일+6)%15`, 0→무시·14→조금.
+- 예약 현황: `data/avail.json` (스크레이프 캐시, git 무시).
 
-## 4. 커밋 & 게시
+## 예약 현황 갱신
 
-수집 데이터가 0건이면 아무것도 하지 말고 종료.
-`git status --porcelain` 에 변경이 있으면:
+- **보드의 `갱신` 버튼** 또는 `npm run scrape` → 3개월치 배별 잔여석을 다시 긁어 `data/avail.json` 갱신.
+- 서버는 요청마다 파일을 읽으므로 재시작 불필요.
+- 자동화: `update_avail.sh` 를 launchd 로 6시간마다 실행 (기존 plist 재사용).
 
-1. `git add -A && git commit -m "예약현황 자동 갱신" && git push origin main`
-2. Artifact 재게시: `action=publish`, `file_path="인천물때예약판.html"`,
-   `url="https://claude.ai/code/artifact/e2193037-3780-4640-a0b2-04388715595a"`,
-   `label="예약현황 자동 갱신"`
+```bash
+crontab 예시:  0 */6 * * *  /Users/sanoh/Documents/code/FSS/update_avail.sh
+```
 
-변경이 없으면 "변경 없음" 으로만 보고.
+## 사이트 추가 / 삭제
 
-## 5. 보고
+보드 → `설정 · 배 추가`. URL 을 넣으면 호스트로 종류를 판별한다.
 
-사이트별 수집 날짜 수, 갱신 시각, (있으면) 실패한 URL 을 요약.
+| 종류 | 예 | 배별 인원 조회 |
+|---|---|---|
+| `xe` | 칸피싱·제일낚시 등 XpressEngine `mid=bk` | O |
+| `sunsang` | 동양낚시 등 `*.sunsang24.com` | O |
+| `generic` | 그 외 | X (링크 열만) |
+
+설정은 `data/sites.json` 에 저장된다.
+
+## 파싱 규칙 (참고)
+
+- **xe**: 월 목록 페이지 + `_module.new.list.more.php` 페이지네이션.
+  날짜 구간(`<a name="YYYYMMDD">`) 안 배마다
+  `admin-right-YYYYMMDD-{PA_N_UID}-0` div 의 `<img alt>`:
+  `예약완료`→마감 / `남은자리 N명`→잔여 N (≤3 임박) / `배정비일`→미운항.
+- **sunsang**: `schedule_fleet/YYYYMM` 의 `ship_unit_ship_no_*` 블록.
+  `예약마감`→마감, `남은자리 N명 … 예약/M명`→잔여 N·정원 N+M.
+- 3개 사이트 모두 0건이면 기존 `avail.json` 유지.
