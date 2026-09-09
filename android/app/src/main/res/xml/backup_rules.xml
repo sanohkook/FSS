@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 이하 자동 백업. 내 예약·사이트 설정만 백업(재설치/기기변경 시 복원). -->
+<full-backup-content>
+    <include domain="file" path="data/myplan.json" />
+    <include domain="file" path="data/sites.json" />
+    <exclude domain="file" path="data/avail.json" />
+    <exclude domain="file" path="web" />
+    <exclude domain="file" path="tide.json" />
+</full-backup-content>

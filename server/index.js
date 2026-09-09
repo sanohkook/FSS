@@ -195,6 +195,25 @@ app.post("/api/tide/refresh", async (_req, res) => {
 
 app.get("/api/myplan", async (_req, res) => res.json(await getMyplan()));
 
+// 전체 교체 (내보내기/가져오기용)
+app.put("/api/myplan", async (req, res) => {
+  const { list } = req.body || {};
+  if (!Array.isArray(list)) return res.status(400).json({ error: "list 배열 필요" });
+  const clean = list
+    .filter((x) => x && x.date && x.boatId)
+    .map((x) => ({
+      date: String(x.date),
+      boatId: String(x.boatId),
+      note: x.note || "",
+      addedAt: x.addedAt || new Date().toISOString(),
+    }));
+  const saved = await withLock("myplan.json", async () => {
+    await saveMyplan(clean);
+    return clean;
+  });
+  res.json(saved);
+});
+
 app.post("/api/myplan", async (req, res) => {
   const { date, boatId, note } = req.body || {};
   if (!date || !boatId) return res.status(400).json({ error: "date, boatId 필요" });

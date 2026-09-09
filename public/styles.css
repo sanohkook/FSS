@@ -369,6 +369,8 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .plan-item .pd { font-weight: 600; white-space: nowrap; }
 .plan-item .pb { color: var(--ink-2); flex: 1; }
 .plan-item a { color: var(--accent); text-decoration: none; font-size: 12px; }
+.plan-io { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-2); }
+.plan-io textarea, #planText { width: 100%; font-size: 12px; }
 
 .toast {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);

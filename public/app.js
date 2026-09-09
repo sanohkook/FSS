@@ -609,6 +609,10 @@
   document.getElementById("planBtn").onclick = function () {
     var p = document.createElement("div");
     p.className = "panel modal";
+    openOverlay("center", p);
+    drawPlan(p);
+  };
+  function drawPlan(p) {
     var boatName = {};
     (state.board.boats || []).forEach(function (bt) { boatName[bt.id] = bt.name + " (" + bt.site + ")"; });
     var list = (state.board.myplan || []).slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
@@ -620,16 +624,49 @@
           '<span class="pb">' + esc(boatName[x.boatId] || x.boatId) + "</span>" +
           '<button class="link-btn" data-del data-date="' + x.date + '" data-boat="' + esc(x.boatId) + '">삭제</button></div>';
       }).join("") : '<p class="hint">표에서 셀을 한 번 눌러 예약 계획을 저장하세요.</p>') +
+      '<div class="plan-io"><button data-io="export">내보내기</button><button data-io="import">가져오기</button>' +
+      '<span class="hint" style="margin:0">기기 변경·재설치 대비 백업</span></div>' +
       "</div>";
-    openOverlay("center", p);
     p.querySelector("[data-close]").onclick = closeOverlay;
     p.querySelectorAll("[data-del]").forEach(function (b) {
       b.onclick = function () {
         api("DELETE", "/api/myplan/" + b.getAttribute("data-date") + "/" + encodeURIComponent(b.getAttribute("data-boat")))
-          .then(function (l) { state.board.myplan = l; closeOverlay(); render(); });
+          .then(function (l) { state.board.myplan = l; drawPlan(p); render(); });
       };
     });
-  };
+    p.querySelector('[data-io="export"]').onclick = function () { planIO(p, "export", list); };
+    p.querySelector('[data-io="import"]').onclick = function () { planIO(p, "import", list); };
+  }
+  function planIO(p, mode, list) {
+    var isExp = mode === "export";
+    var text = isExp ? JSON.stringify(list) : "";
+    p.innerHTML =
+      '<div class="panel-head"><h2>' + (isExp ? "내보내기" : "가져오기") + '</h2><button class="icon-btn" data-back>‹</button></div>' +
+      '<div class="panel-body"><p class="hint">' +
+      (isExp ? "아래 내용을 복사해 메모 등에 보관하세요." : "내보내기 한 내용을 붙여넣고 적용하세요. (기존 목록은 대체됩니다)") +
+      '</p><textarea id="planText" class="mono"' + (isExp ? " readonly" : "") + ' rows="7">' + esc(text) + "</textarea>" +
+      '<div class="row" style="margin-top:10px">' +
+      (isExp ? '<button class="btn-primary" id="planCopy">복사</button>'
+             : '<button class="btn-primary" id="planApply">적용</button>') +
+      "</div></div>";
+    p.querySelector("[data-back]").onclick = function () { drawPlan(p); };
+    if (isExp) {
+      p.querySelector("#planCopy").onclick = function () {
+        var ta = p.querySelector("#planText"); ta.select();
+        try { document.execCommand("copy"); toast("복사됨"); } catch (e) { toast("직접 선택해 복사하세요"); }
+      };
+    } else {
+      p.querySelector("#planApply").onclick = function () {
+        var raw = p.querySelector("#planText").value.trim();
+        var arr;
+        try { arr = JSON.parse(raw); if (!Array.isArray(arr)) throw 0; }
+        catch (e) { toast("형식이 올바르지 않습니다"); return; }
+        api("PUT", "/api/myplan", { list: arr }).then(function (l) {
+          state.board.myplan = l; toast("가져왔습니다 (" + l.length + "건)"); drawPlan(p); render();
+        }).catch(function (err) { toast("실패: " + err.message); });
+      };
+    }
+  }
 
   // ---------- 업그레이드 (안드로이드 앱 전용) ----------
   // 로딩 시 조용히 새 버전 확인 → 있을 때만 버튼 노출. ✕ 로 이번 버전 알림 끄기.

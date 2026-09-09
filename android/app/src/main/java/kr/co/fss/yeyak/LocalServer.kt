@@ -142,6 +142,20 @@ class LocalServer(private val ctx: Context, port: Int) : NanoHTTPD("127.0.0.1", 
 
         if (uri == "/api/myplan") {
             if (method == Method.GET) return json(200, store.myplan())
+            if (method == Method.PUT) {
+                // 전체 교체 (가져오기)
+                val arr = body(session, bm).optJSONArray("list") ?: return json(400, JSONObject().put("error", "list 배열 필요"))
+                val clean = JSONArray()
+                for (i in 0 until arr.length()) {
+                    val x = arr.optJSONObject(i) ?: continue
+                    val d = x.optString("date"); val bid = x.optString("boatId")
+                    if (d.isEmpty() || bid.isEmpty()) continue
+                    clean.put(JSONObject().put("date", d).put("boatId", bid)
+                        .put("note", x.optString("note")).put("addedAt", x.optString("addedAt").ifEmpty { nowIso() }))
+                }
+                store.saveMyplan(clean)
+                return json(200, clean)
+            }
             if (method == Method.POST) {
                 val b = body(session, bm)
                 val date = b.optString("date"); val boatId = b.optString("boatId")
