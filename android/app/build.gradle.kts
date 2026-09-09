@@ -20,8 +20,8 @@ android {
         applicationId = "kr.co.fss.yeyak"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "2.7"
+        versionCode = 10
+        versionName = "2.8"
     }
 
     buildFeatures {
