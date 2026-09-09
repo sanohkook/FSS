@@ -4,6 +4,10 @@
   var WD_ORDER = ["일", "월", "화", "수", "목", "금", "토"];
   var state = { month: null, board: null, months: [] };
 
+  // 앱 버전 (안드로이드 앱에서만). 화면 하단(footNote)에 표기.
+  var APP_VER = "";
+  try { if (window.FssNative && FssNative.appVersion) APP_VER = String(FssNative.appVersion() || ""); } catch (e) {}
+
   var el = {
     mLabel: document.getElementById("mLabel"),
     prevM: document.getElementById("prevM"),
@@ -409,7 +413,8 @@
     el.footNote.innerHTML =
       "<b>물때·조류</b>는 국립해양조사원 인천 조석예보 기반. 조류 %는 그날 조차의 상대 세기, 물때는 음력 기준 계산. " +
       "<b>예약 현황</b> 마지막 갱신: " + esc(when) + " · 사이트 " + b.sites.filter(function (s) { return s.enabled !== false; }).length + "곳. " +
-      "잔여석이 있는 칸은 클릭하면 해당 배 예약 페이지가 열립니다.";
+      "잔여석이 있는 칸은 클릭하면 해당 배 예약 페이지가 열립니다." +
+      (APP_VER ? '<span class="ver"> · 버전 ' + esc(APP_VER) + "</span>" : "");
   }
 
   // ---------- table interactions ----------
@@ -605,13 +610,6 @@
     var ub = document.getElementById("upgradeBtn");
     var uc = document.getElementById("upgradeClose");
     if (!wrap || !ub || !window.FssNative) return;
-
-    // ⓘ 팝업에 현재 버전 표시
-    try {
-      var vEl = document.getElementById("appVer");
-      var v = FssNative.appVersion();
-      if (vEl && v) { vEl.textContent = "버전 " + v; vEl.hidden = false; }
-    } catch (e) {}
 
     var latest = "";
     var clicked = false;

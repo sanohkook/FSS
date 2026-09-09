@@ -183,7 +183,6 @@ button[disabled] { opacity: .5; cursor: default; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 0 2px 14px; font-size: 11.5px; color: var(--ink-2); }
 .legend .grp { display: flex; align-items: center; gap: 6px; }
-.legend .ver { width: 100%; color: var(--ink-3); font-size: 11px; padding-top: 2px; }
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
 .chip.s-open { color: var(--open); background: var(--open-bg); border-color: color-mix(in srgb, var(--open) 30%, transparent); }
 .chip.s-few { color: var(--few); background: var(--few-bg); border-color: color-mix(in srgb, var(--few) 30%, transparent); }
@@ -374,6 +373,7 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 
 .foot-note { font-size: 11px; color: var(--ink-3); margin-top: 14px; line-height: 1.6; }
 .foot-note b { color: var(--ink-2); font-weight: 600; }
+.foot-note .ver { color: var(--ink-2); white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
