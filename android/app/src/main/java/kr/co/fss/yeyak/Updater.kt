@@ -21,6 +21,10 @@ import java.net.URL
  * 릴리스 규칙: 태그 = vX.Y (예 v2.3), 자산으로 *.apk 하나.
  */
 object Updater {
+    // 1순위: raw (사실상 무제한). release.sh 가 'release' 브랜치에 {version, apk} 를 올린다.
+    private const val LATEST_JSON =
+        "https://raw.githubusercontent.com/sanohkook/FSS/release/latest.json"
+    // 폴백: GitHub API (비인증 시간당 60회)
     private const val API = "https://api.github.com/repos/sanohkook/FSS/releases/latest"
 
     private data class Rel(val tag: String, val apkUrl: String)
@@ -72,8 +76,26 @@ object Updater {
 
     private fun st(phase: String) = JSONObject().put("phase", phase)
 
-    /** 최신 릴리스가 현재보다 높으면 Rel, 아니면(없음/동일/오래됨/형식이상) null */
+    /** 최신 릴리스가 현재보다 높으면 Rel, 아니면 null. raw 먼저, 실패 시에만 API. */
     private fun latest(): Rel? {
+        val res = runCatching {
+            Http.get(LATEST_JSON, mapOf("Accept" to "application/json"), timeoutMs = 12000)
+        }.getOrNull()
+        if (res != null && res.status == 200) {
+            return try {
+                val o = JSONObject(res.text)
+                val v = o.optString("version").trim().removePrefix("v")
+                val apk = o.optString("apk")
+                Log.i("fss", "update(raw): $v vs ${BuildConfig.VERSION_NAME}")
+                if (v.isNotEmpty() && apk.isNotEmpty() && newer(v, BuildConfig.VERSION_NAME)) Rel(v, apk) else null
+            } catch (e: Exception) {
+                Log.w("fss", "latest.json 파싱 실패 → API", e); latestFromApi()
+            }
+        }
+        return latestFromApi()
+    }
+
+    private fun latestFromApi(): Rel? {
         val res = Http.get(API, mapOf("Accept" to "application/vnd.github+json"))
         if (res.status == 404) return null
         val rel = JSONObject(res.text)
@@ -82,7 +104,7 @@ object Updater {
             (0 until arr.length()).map { arr.getJSONObject(it) }
                 .firstOrNull { it.optString("name").endsWith(".apk", true) }
         }
-        Log.i("fss", "update: latest tag=$tag current=${BuildConfig.VERSION_NAME} asset=${asset?.optString("name")}")
+        Log.i("fss", "update(api): tag=$tag current=${BuildConfig.VERSION_NAME} asset=${asset?.optString("name")}")
         if (tag.isEmpty() || asset == null) return null
         if (!newer(tag, BuildConfig.VERSION_NAME)) return null
         return Rel(tag, asset.getString("browser_download_url"))

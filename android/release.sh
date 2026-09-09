@@ -38,11 +38,23 @@ git tag "v$VER"
 git push origin main "v$VER"
 echo "→ 태그 v$VER push 완료"
 
+# latest.json 을 'release' 브랜치에 올린다 — 앱이 raw.githubusercontent(무제한)로 버전 확인
+publish_latest_json() {
+  local url="https://github.com/sanohkook/FSS/releases/download/v$VER/app-release.apk"
+  local json; json=$(printf '{"version":"%s","apk":"%s"}\n' "$VER" "$url")
+  local blob; blob=$(printf '%s' "$json" | git hash-object -w --stdin)
+  local tree; tree=$(printf '100644 blob %s\tlatest.json\n' "$blob" | git mktree)
+  local commit; commit=$(git commit-tree "$tree" -m "release v$VER")
+  git push -f origin "$commit:refs/heads/release"
+  echo "→ latest.json → release 브랜치 (v$VER)"
+}
+
 # 3) 릴리스 발행
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   echo "→ gh 로그인됨 — 로컬에서 서명 빌드 후 릴리스 생성"
   build
   gh release create "v$VER" "$APK" --title "v$VER" --generate-notes
+  publish_latest_json
   echo "✅ 릴리스 v$VER 발행 완료 — 앱의 '업그레이드' 버튼에 곧 표시됩니다"
 else
   echo
