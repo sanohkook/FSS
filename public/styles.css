@@ -224,8 +224,13 @@ thead th {
 }
 
 /* ── 틀 고정 (체크박스로 on/off) ─────────────────────────
-   상단 선박명 머리글 + 좌측 날짜·물때 열을 스크롤해도 고정. */
-:root { --cw-date: 58px; }
+   상단 선박명 머리글 + 좌측 날짜·물때 열을 스크롤해도 고정.
+   머리글 고정은 표를 자체 스크롤 박스 안에 넣어야 가능(overflow 있는 조상 필요). */
+:root { --cw-date: 58px; --header-h: 0px; }
+.tablecard.frz .scroller {
+  overflow: auto; overscroll-behavior: contain;
+  max-height: calc(100dvh - var(--header-h) - 76px);
+}
 .tablecard.frz thead th { position: sticky; top: 0; }
 .tablecard.frz td.c-date, .tablecard.frz thead th.c-date {
   position: sticky; left: 0; z-index: 3; background: var(--surface);

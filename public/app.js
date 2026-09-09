@@ -445,6 +445,16 @@
 
 
   // ---------- 틀 고정 (날짜·물때 왼쪽 열 + 선박명 머리글 고정) ----------
+  // 머리글이 상단 고정 헤더 아래에 붙도록 헤더 높이를 CSS 변수로
+  (function () {
+    var hdr = document.querySelector("header");
+    var set = function () {
+      if (hdr) document.documentElement.style.setProperty("--header-h", hdr.offsetHeight + "px");
+    };
+    set();
+    window.addEventListener("resize", set);
+    if (window.ResizeObserver && hdr) new ResizeObserver(set).observe(hdr);
+  })();
   (function () {
     var chk = document.getElementById("freezeChk");
     if (!chk) return;
