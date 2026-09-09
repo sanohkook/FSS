@@ -21,6 +21,12 @@ object RemoteSync {
             if (!obj.has("byDate")) { Log.w("fss", "remote avail: byDate 없음"); return false }
             val prev = store.avail().optString("updatedAt", "")
             val now = obj.optString("updatedAt", "")
+            // 로컬(앱에서 직접 Refresh 한 결과)이 더 최신이면 원격으로 덮어쓰지 않는다.
+            // ISO8601(UTC) 이라 문자열 비교 = 시간 비교.
+            if (prev.isNotEmpty() && now.isNotEmpty() && now <= prev) {
+                Log.i("fss", "remote avail 무시: 로컬($prev) ≥ 원격($now)")
+                return false
+            }
             store.saveAvail(obj)
             Log.i("fss", "remote avail 적용: $prev → $now (배 ${obj.optJSONArray("boats")?.length() ?: 0})")
             prev != now
