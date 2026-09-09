@@ -574,6 +574,34 @@
           .then(function (r) { toast("추가됨 (" + r.kind + ") — 잠시 후 배 목록이 채워집니다"); drawSettings(p); })
           .catch(function (e) { toast("추가 실패: " + e.message); this && (this.disabled = false); });
       };
+
+      // ---- 추천 사이트 (인천·영흥·충남 배낚시) ----
+      var host = function (u) { try { return new URL(u).host.replace(/^www\./, ""); } catch (e) { return u; } };
+      var have = {};
+      sites.forEach(function (s) { have[host(s.listUrl || "")] = 1; });
+      fetch("/suggested-sites.json").then(function (r) { return r.json(); }).then(function (list) {
+        var todo = list.filter(function (x) { return !have[host(x.url)]; });
+        var sec = document.createElement("div");
+        sec.className = "sug-sec";
+        sec.innerHTML = '<div class="flt-h">추천 사이트 <b>' + todo.length + "</b></div>" +
+          (todo.length
+            ? todo.map(function (x, i) {
+                return '<div class="sug" data-i="' + i + '"><span class="rg">' + esc(x.region) + "</span>" +
+                  '<span class="nm">' + esc(x.name) + "</span>" +
+                  '<button class="link-btn" data-add>추가</button></div>';
+              }).join("")
+            : '<p class="hint" style="margin:6px 0">추천 사이트를 모두 추가했습니다.</p>');
+        body.appendChild(sec);
+        sec.querySelectorAll("[data-add]").forEach(function (btn) {
+          btn.onclick = function () {
+            var x = todo[+btn.closest(".sug").getAttribute("data-i")];
+            btn.disabled = true; btn.textContent = "추가 중…";
+            api("POST", "/api/sites", { name: x.name, url: x.url })
+              .then(function (r) { toast(x.name + " 추가됨 (" + r.kind + ")"); drawSettings(p); })
+              .catch(function (e) { toast("추가 실패: " + e.message); btn.disabled = false; btn.textContent = "추가"; });
+          };
+        });
+      }).catch(function () { /* 추천 목록 없음 — 무시 */ });
     });
   }
 

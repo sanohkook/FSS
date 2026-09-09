@@ -1,0 +1,23 @@
+[
+  { "region": "인천", "name": "우리바다낚시", "url": "https://www.woorinaksi.com/index.php?mid=bk" },
+  { "region": "인천", "name": "은아낚시(은아호)", "url": "https://bluefc.sunsang24.com" },
+  { "region": "인천", "name": "명낚시", "url": "https://mfish.sunsang24.com" },
+
+  { "region": "영흥도", "name": "배낚시선주협회", "url": "http://www.shipowner.kr/index.php?mid=bk" },
+  { "region": "영흥도", "name": "아라호(아라피싱)", "url": "http://www.araho.co.kr/index.php?mid=bk" },
+  { "region": "영흥도", "name": "영동2호", "url": "https://www.youngdong2ho.net/index.php?mid=bk" },
+  { "region": "영흥도", "name": "은하1호", "url": "http://www.gilfish.co.kr/index.php?mid=bk" },
+
+  { "region": "안면도", "name": "피싱게이트(선단)", "url": "https://fishinggate.sunsang24.com" },
+  { "region": "태안", "name": "피쉬뱅크호", "url": "https://fishbank.sunsang24.com" },
+  { "region": "홍원항", "name": "팀베테랑호", "url": "https://teamveteran.sunsang24.com" },
+  { "region": "홍원항", "name": "서해바다낚시", "url": "http://www.jofishing.co.kr/index.php?mid=bk" },
+  { "region": "홍원항", "name": "항구낚시", "url": "http://hangu.thefishing.kr/m/index.php?mid=bk" },
+
+  { "region": "남당항", "name": "남당피싱(워너비호 외)", "url": "https://www.namdangfishing.com/index.php?mid=bk" },
+  { "region": "남당항", "name": "은가비호", "url": "https://www.eungabiho.com/index.php?mid=bk" },
+  { "region": "남당항", "name": "정환호", "url": "https://jh.sunsang24.com" },
+  { "region": "남당항", "name": "동백호", "url": "https://dongbaek.sunsang24.com" },
+  { "region": "남당항", "name": "마이웨이호", "url": "https://seungjin.sunsang24.com" },
+  { "region": "남당항", "name": "글로리호", "url": "https://glory.sunsang24.com" }
+]

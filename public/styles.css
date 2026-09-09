@@ -354,6 +354,13 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .site-edit .kind { font-size: 10.5px; padding: 1px 6px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
 .link-btn { background: none; border: none; padding: 4px 6px; color: var(--full); font-size: 12px; }
 .link-btn:hover { text-decoration: underline; border: none; }
+
+.sug-sec { margin-top: 6px; border-top: 1px solid var(--line-2); padding-top: 12px; }
+.sug { display: flex; align-items: center; gap: 8px; padding: 6px 2px; border-bottom: 1px solid var(--line-2); font-size: 13px; }
+.sug:last-child { border-bottom: none; }
+.sug .rg { flex-shrink: 0; width: 52px; font-size: 11px; color: var(--ink-3); }
+.sug .nm { flex: 1; color: var(--ink); }
+.sug [data-add] { color: var(--accent); font-weight: 600; }
 .hint { font-size: 11px; color: var(--ink-3); margin: 4px 0 0; }
 .hint code { background: var(--surface-2); padding: 0 4px; border-radius: 4px; }
 
