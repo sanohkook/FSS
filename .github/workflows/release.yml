@@ -61,6 +61,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "=================== BUILD LOG TAIL ==================="
           tail -n 200 /tmp/build.log 2>/dev/null || true
+          # 오류 요지를 annotation 으로 (API 로 읽기 위함)
+          grep -nE "FAILURE:|What went wrong|Caused by:|> Task .* FAILED|error:|Execution failed|Could not|Unable to|A problem occurred" /tmp/build.log \
+            | tail -n 25 | while IFS= read -r l; do echo "::error::${l}"; done || true
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
