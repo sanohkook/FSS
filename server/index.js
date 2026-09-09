@@ -220,8 +220,15 @@ app.delete("/api/myplan/:date/:boatId", async (req, res) => {
   res.json(list);
 });
 
+// FSS_SYNC=1 npm start  → 1시간마다 스크레이프 + git 'avail' 브랜치 push (앱 동기화용)
+if (process.env.FSS_SYNC === "1") {
+  const { startSyncLoop } = await import("./syncLoop.js");
+  startSyncLoop(1);
+}
+
 app.listen(PORT, () => {
   console.log(`예약현황 → http://localhost:${PORT}`);
+  if (process.env.FSS_SYNC === "1") console.log("  git 동기화: 1시간마다 'avail' 브랜치 갱신");
   // 같은 와이파이의 폰(안드로이드 앱)에서 접속할 주소
   try {
     const nets = os.networkInterfaces();

@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node server/index.js",
     "scrape": "node server/scrape/index.js",
+    "sync": "node server/syncLoop.js",
+    "sync:watch": "node server/syncLoop.js --watch",
     "tide": "node server/importKhoa.js",
     "tide:badatime": "node server/refreshTide.js --badatime"
   },

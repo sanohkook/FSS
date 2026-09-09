@@ -5,11 +5,15 @@
   <key>Label</key><string>com.fss.avail</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/sanoh/Documents/code/FSS/update_avail.sh</string>
+    <string>/opt/homebrew/bin/node</string>
+    <string>server/syncLoop.js</string>
   </array>
+  <key>WorkingDirectory</key><string>/Users/sanoh/Documents/code/FSS</string>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string></dict>
   <key>StartInterval</key><integer>3600</integer>
   <key>RunAtLoad</key><true/>
-  <key>StandardOutPath</key><string>/Users/sanoh/Documents/code/FSS/update_avail.log</string>
-  <key>StandardErrorPath</key><string>/Users/sanoh/Documents/code/FSS/update_avail.log</string>
+  <key>StandardOutPath</key><string>/Users/sanoh/Documents/code/FSS/sync.log</string>
+  <key>StandardErrorPath</key><string>/Users/sanoh/Documents/code/FSS/sync.log</string>
 </dict>
 </plist>

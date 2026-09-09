@@ -19,20 +19,24 @@ npm start        # http://localhost:3300
 
 ## 예약 현황 갱신
 
-**맥(스크레이핑) → git → 앱** 구조. 예약 사이트 접속은 맥에서만 한다(클라우드는 프록시 차단).
+**맥(스크레이핑) → git `avail` 브랜치 → 앱** 구조. 예약 사이트 접속은 맥에서만(클라우드 프록시 차단).
 
-- **맥**: `update_avail.sh` 가 `npm run scrape` 로 `data/avail.json` 을 만들고,
-  그 파일 하나만 담은 커밋을 원격 **`avail` 브랜치**에 force-push (히스토리 1커밋 고정).
-  `launchd/com.fss.avail.plist` 를 등록하면 **1시간마다 자동** 실행.
+- **한 번 갱신**: `npm run sync` → 스크레이프 후 `data/avail.json` 하나만 담은 커밋을
+  원격 **`avail` 브랜치**에 force-push (working tree/main 안 건드림, 히스토리 1커밋 고정).
+- **1시간마다 자동** — 둘 중 하나:
+  1. `FSS_SYNC=1 npm start` — 웹서버 + 1시간 갱신 루프를 한 프로세스로. **터미널/`tmux` 에서 실행 후 그대로 둠** (권장, git 자격증명이 확실히 붙음).
+  2. `npm run sync:watch` — 갱신 루프만.
+  3. `launchd/com.fss.avail.plist` 등록 (아래). 단, `git push` 가 headless 라
+     `credential.helper` 설정이 되어 있어야 함 — 안 되면 즉시 실패하고 `sync.log` 에 기록.
 
   ```bash
   cp launchd/com.fss.avail.plist ~/Library/LaunchAgents/
-  launchctl load ~/Library/LaunchAgents/com.fss.avail.plist   # 등록 (RunAtLoad 로 즉시 1회)
-  launchctl unload ~/Library/LaunchAgents/com.fss.avail.plist  # 해제
-  # 로그: update_avail.log
+  launchctl load   ~/Library/LaunchAgents/com.fss.avail.plist   # RunAtLoad 로 즉시 1회 + 1시간마다
+  launchctl unload ~/Library/LaunchAgents/com.fss.avail.plist
+  # 로그: sync.log
   ```
 
-- **맥 웹서버**(`npm start`)는 로컬 `data/avail.json` 을 직접 읽는다 — 그대로.
+- **맥 웹서버**는 로컬 `data/avail.json` 을 직접 읽는다 — 그대로.
 - **안드로이드 앱**: 실행 시 `https://raw.githubusercontent.com/sanohkook/FSS/avail/avail.json`
   을 받아온다(작은 JSON, 스크레이핑 아님). 실패하면 마지막 캐시 유지.
   화면의 **`Refresh` 버튼**은 앱이 직접 풀스크레이핑(`Scrape.refreshAll`) — 맥이 꺼져 있어도 최신.
