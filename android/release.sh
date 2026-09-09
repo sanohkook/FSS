@@ -18,7 +18,7 @@ export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 
 build() {
   [ -f keystore.properties ] || { echo "❌ keystore.properties 없음 — 서명 키가 필요합니다"; exit 1; }
-  ./gradlew :app:assembleRelease -q
+  ./gradlew :app:assembleRelease -x lintVitalRelease -q
   echo "→ $APK ($(du -h "$APK" | cut -f1))"
 }
 

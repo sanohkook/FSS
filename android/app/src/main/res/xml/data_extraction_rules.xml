@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+ 클라우드 백업 / 기기 간 전송. -->
+<!-- Android 12+ 클라우드 백업 / 기기 간 전송. include 만 대상. -->
 <data-extraction-rules>
     <cloud-backup>
         <include domain="file" path="data/myplan.json" />
         <include domain="file" path="data/sites.json" />
-        <exclude domain="file" path="data/avail.json" />
-        <exclude domain="file" path="web" />
-        <exclude domain="file" path="tide.json" />
     </cloud-backup>
     <device-transfer>
         <include domain="file" path="data/myplan.json" />
