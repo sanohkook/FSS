@@ -13,6 +13,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -97,6 +98,13 @@ class MainActivity : Activity() {
             }
         }
 
+        // 앱 업데이트 후 첫 실행이면 WebView 캐시를 비운다 (오래된 화면 방지)
+        val sp = getSharedPreferences("fss", MODE_PRIVATE)
+        if (sp.getInt("lastVc", -1) != BuildConfig.VERSION_CODE) {
+            web.clearCache(true)
+            sp.edit().putInt("lastVc", BuildConfig.VERSION_CODE).apply()
+        }
+
         // 자동 갱신 없음 — 예약 현황은 화면의 Refresh 버튼을 눌렀을 때만 조회한다.
         if (savedInstanceState != null) web.restoreState(savedInstanceState) else web.loadUrl(base)
     }
@@ -106,9 +114,15 @@ class MainActivity : Activity() {
         web.saveState(outState)
     }
 
+    private var lastBackAt = 0L
+
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
-        if (web.canGoBack()) web.goBack() else super.onBackPressed()
+        if (web.canGoBack()) { web.goBack(); return }
+        val now = System.currentTimeMillis()
+        if (now - lastBackAt < 2000) { super.onBackPressed(); return }
+        lastBackAt = now
+        Toast.makeText(this, "한 번 더 누르면 종료", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {

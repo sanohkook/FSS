@@ -34,7 +34,7 @@ class LocalServer(private val ctx: Context, port: Int) : NanoHTTPD("127.0.0.1", 
         return try {
             val bytes = ctx.assets.open(path).use { it.readBytes() }
             newFixedLengthResponse(Response.Status.OK, mime(uri), bytes.inputStream(), bytes.size.toLong())
-                .also { it.addHeader("Cache-Control", "no-cache") }
+                .also { it.addHeader("Cache-Control", "no-store, must-revalidate") }
         } catch (e: Exception) {
             newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "not found: $uri")
         }

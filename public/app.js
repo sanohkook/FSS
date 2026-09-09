@@ -606,6 +606,13 @@
     var uc = document.getElementById("upgradeClose");
     if (!wrap || !ub || !window.FssNative) return;
 
+    // ⓘ 팝업에 현재 버전 표시
+    try {
+      var vEl = document.getElementById("appVer");
+      var v = FssNative.appVersion();
+      if (vEl && v) { vEl.textContent = "버전 " + v; vEl.hidden = false; }
+    } catch (e) {}
+
     var latest = "";
     var clicked = false;
     var reset = function () {
