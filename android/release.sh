@@ -46,6 +46,8 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   echo "✅ 릴리스 v$VER 발행 완료 — 앱의 '업그레이드' 버튼에 곧 표시됩니다"
 else
   echo
-  echo "gh 미로그인 → GitHub Actions 가 빌드합니다: https://github.com/sanohkook/FSS/actions"
-  echo "  (Actions 가 처음이면 저장소 시크릿 4개 등록 필요 — android/README.md 참고)"
+  echo "⚠️  gh 미로그인 — 릴리스가 발행되지 않았습니다. 태그만 push 됨."
+  echo "   방법 1) gh auth login  후  ./release.sh $VER  다시 실행 (맥에서 빌드+발행)"
+  echo "   방법 2) 맥 없이: GitHub → Actions → 'Release APK' → Run workflow → tag: v$VER"
+  echo "           (시크릿 KEYSTORE_B64/PASSWORD/ALIAS/KEY_PASSWORD 등록돼 있어야 함)"
 fi

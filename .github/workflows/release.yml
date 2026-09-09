@@ -9,9 +9,15 @@ name: Release APK
 #   KEY_ALIAS         : fss
 #   KEY_PASSWORD      : keystore.properties 의 keyPassword
 
+# 기본은 로컬에서 `./release.sh <ver>` (gh 로그인 시 맥에서 빌드+발행).
+# 이 워크플로는 맥이 없을 때를 위한 예비 — Actions 탭에서 tag 를 지정해 수동 실행한다.
+# (KEYSTORE_B64 등 시크릿 4개가 올바로 등록돼 있어야 함)
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "릴리스할 태그 (예: v2.9). 먼저 push 돼 있어야 함"
+        required: true
 
 permissions:
   contents: write
@@ -21,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
 
       - uses: actions/setup-java@v5
         with:
@@ -70,6 +78,7 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag }}
           files: android/app/build/outputs/apk/release/app-release.apk
           generate_release_notes: true
           fail_on_unmatched_files: true

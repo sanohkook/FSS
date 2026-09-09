@@ -40,21 +40,21 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradle
 앱의 **업그레이드** 버튼이 `github.com/sanohkook/FSS` 의 최신 릴리스를 확인해
 새 버전이면 APK 를 내려받아 설치 화면을 띄운다. (최초 1회 "이 출처의 앱 설치 허용" 필요)
 
-새 버전 배포:
+새 버전 배포 (권장 — 맥에서):
 
 ```bash
+brew install gh && gh auth login   # 최초 1회
 cd android
-./release.sh 2.4        # versionCode 자동 +1, versionName 2.4, 커밋 + 태그 push
+./release.sh 2.9                    # 버전 올림 + 커밋/태그 push + 맥에서 서명 빌드 + 릴리스 발행
 ```
 
-→ `vX.Y` 태그가 올라가면 **GitHub Actions**(`.github/workflows/release.yml`)가 서명 APK 를
-빌드해 릴리스를 자동 발행한다. 진행: <https://github.com/sanohkook/FSS/actions>
-
-Actions 최초 1회 설정 — 저장소 **Settings → Secrets and variables → Actions** 에 4개 등록:
+맥이 없을 때 (예비) — **GitHub Actions 수동 실행**:
+`./release.sh 2.9` 로 태그만 올린 뒤 → 저장소 **Actions → Release APK → Run workflow → tag: v2.9**.
+Actions 를 쓰려면 **Settings → Secrets and variables → Actions** 에 4개 등록:
 
 | Secret | 값 |
 |---|---|
-| `KEYSTORE_B64` | `base64 -i android/fss-release.jks \| pbcopy` 결과 (한 줄) |
+| `KEYSTORE_B64` | `base64 -i android/fss-release.jks \| pbcopy` 결과 (한 줄, 전체 붙여넣기) |
 | `KEYSTORE_PASSWORD` | `keystore.properties` 의 `storePassword` |
 | `KEY_ALIAS` | `fss` |
 | `KEY_PASSWORD` | `keystore.properties` 의 `keyPassword` |
