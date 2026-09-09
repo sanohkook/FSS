@@ -19,10 +19,23 @@ npm start        # http://localhost:3300
 
 ## 예약 현황 갱신
 
-- **자동 갱신 없음.** 보드의 **`Refresh` 버튼**(또는 `npm run scrape`)을 눌렀을 때만
-  3개월치 배별 잔여석을 다시 긁어 `data/avail.json` 을 갱신한다.
-- 서버는 요청마다 파일을 읽으므로 재시작 불필요.
-- 안드로이드 앱도 동일 — 실행 시 자동 조회하지 않고 화면의 `Refresh` 를 눌러야 갱신된다.
+**맥(스크레이핑) → git → 앱** 구조. 예약 사이트 접속은 맥에서만 한다(클라우드는 프록시 차단).
+
+- **맥**: `update_avail.sh` 가 `npm run scrape` 로 `data/avail.json` 을 만들고,
+  그 파일 하나만 담은 커밋을 원격 **`avail` 브랜치**에 force-push (히스토리 1커밋 고정).
+  `launchd/com.fss.avail.plist` 를 등록하면 **1시간마다 자동** 실행.
+
+  ```bash
+  cp launchd/com.fss.avail.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.fss.avail.plist   # 등록 (RunAtLoad 로 즉시 1회)
+  launchctl unload ~/Library/LaunchAgents/com.fss.avail.plist  # 해제
+  # 로그: update_avail.log
+  ```
+
+- **맥 웹서버**(`npm start`)는 로컬 `data/avail.json` 을 직접 읽는다 — 그대로.
+- **안드로이드 앱**: 실행 시 `https://raw.githubusercontent.com/sanohkook/FSS/avail/avail.json`
+  을 받아온다(작은 JSON, 스크레이핑 아님). 실패하면 마지막 캐시 유지.
+  화면의 **`Refresh` 버튼**은 앱이 직접 풀스크레이핑(`Scrape.refreshAll`) — 맥이 꺼져 있어도 최신.
 
 ## 사이트 추가 / 삭제
 

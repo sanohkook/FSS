@@ -105,8 +105,14 @@ class MainActivity : Activity() {
             sp.edit().putInt("lastVc", BuildConfig.VERSION_CODE).apply()
         }
 
-        // 자동 갱신 없음 — 예약 현황은 화면의 Refresh 버튼을 눌렀을 때만 조회한다.
         if (savedInstanceState != null) web.restoreState(savedInstanceState) else web.loadUrl(base)
+
+        // 로딩 시 git 'avail' 브랜치(맥이 1시간마다 갱신)에서 예약현황을 받아온다.
+        // 스크레이핑 아님 — 작은 JSON 다운로드. 실패하면 기존 캐시 유지. Refresh 버튼은 직접 재조회.
+        Thread {
+            val changed = runCatching { RemoteSync.pull(Store(applicationContext)) }.getOrDefault(false)
+            if (changed) runOnUiThread { web.reload() }
+        }.start()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
