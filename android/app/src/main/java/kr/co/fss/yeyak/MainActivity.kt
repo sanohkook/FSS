@@ -2,6 +2,8 @@ package kr.co.fss.yeyak
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -96,6 +98,13 @@ class MainActivity : Activity() {
                     startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, req.url)); true
                 }.getOrDefault(false)
             }
+        }
+
+        // 갱신 알림(포그라운드 서비스)용 권한 — Android 13+
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            runCatching { requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7) }
         }
 
         // 앱 업데이트 후 첫 실행이면 WebView 캐시를 비운다 (오래된 화면 방지)

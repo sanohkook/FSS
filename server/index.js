@@ -174,14 +174,21 @@ app.delete("/api/sites/:id", async (req, res) => {
   res.json({ sites: next });
 });
 
-app.post("/api/refresh", async (_req, res) => {
-  try {
-    const r = await refreshAll();
-    res.json(r);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+// 백그라운드 실행 + 상태 폴링. POST 는 즉시 반환.
+let refreshJob = { running: false, startedAt: null, finishedAt: null, ok: false, summary: [], message: "" };
+app.post("/api/refresh", (_req, res) => {
+  if (refreshJob.running) return res.json({ started: false, running: true });
+  refreshJob = { running: true, startedAt: new Date().toISOString(), finishedAt: null, ok: false, summary: [], message: "" };
+  res.json({ started: true });
+  refreshAll()
+    .then((r) => {
+      refreshJob = { ...refreshJob, running: false, finishedAt: new Date().toISOString(), ok: !!r.ok, summary: r.summary || [], message: r.message || "" };
+    })
+    .catch((e) => {
+      refreshJob = { ...refreshJob, running: false, finishedAt: new Date().toISOString(), ok: false, message: e.message };
+    });
 });
+app.get("/api/refresh/status", (_req, res) => res.json(refreshJob));
 
 app.post("/api/tide/refresh", async (_req, res) => {
   try {

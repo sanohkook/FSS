@@ -471,33 +471,57 @@
     };
   })();
 
-  // ---------- refresh ----------
-  document.getElementById("refreshBtn").onclick = function () {
-    var btn = this;
-    btn.disabled = true;
-    btn.classList.add("busy");
-    btn.innerHTML = '<span class="lbl">waiting…</span><i class="prog"></i>';
-    var bar = btn.querySelector(".prog");
-    // 실제 진행률은 알 수 없음 → 약 40초에 걸쳐 92%까지 서서히 차오르고 응답 시 100%
-    bar.style.width = "3%";
-    void bar.offsetWidth; // 트랜지션 시작점 확정
-    requestAnimationFrame(function () { bar.style.width = "92%"; });
-    var finish = function () {
-      bar.style.transition = "width .25s ease";
-      bar.style.width = "100%";
-      setTimeout(function () {
-        btn.disabled = false;
-        btn.classList.remove("busy");
-        btn.textContent = "Refresh";
-      }, 280);
-    };
+  // ---------- refresh (백그라운드 실행 + 폴링) ----------
+  // POST /api/refresh 는 즉시 반환하고 서버(앱은 포그라운드 서비스)에서 계속 돈다.
+  // 다른 화면을 보거나 앱을 잠깐 나갔다 와도 이어서 진행 → 완료되면 자동 반영.
+  var refreshBtn = document.getElementById("refreshBtn");
+  var refreshPoll = null;
+  function refreshBusyUI() {
+    refreshBtn.disabled = true;
+    refreshBtn.classList.add("busy");
+    if (!refreshBtn.querySelector(".prog")) {
+      refreshBtn.innerHTML = '<span class="lbl">waiting…</span><i class="prog"></i>';
+      var bar = refreshBtn.querySelector(".prog");
+      bar.style.width = "3%";
+      void bar.offsetWidth;
+      requestAnimationFrame(function () { bar.style.width = "92%"; });
+    }
+  }
+  function refreshDoneUI() {
+    var bar = refreshBtn.querySelector(".prog");
+    if (bar) { bar.style.transition = "width .25s ease"; bar.style.width = "100%"; }
+    setTimeout(function () {
+      refreshBtn.disabled = false;
+      refreshBtn.classList.remove("busy");
+      refreshBtn.textContent = "Refresh";
+    }, 280);
+  }
+  function watchRefresh(announce) {
+    if (refreshPoll) return;
+    refreshBusyUI();
+    refreshPoll = setInterval(function () {
+      api("GET", "/api/refresh/status").then(function (st) {
+        if (st.running) return;
+        clearInterval(refreshPoll); refreshPoll = null;
+        refreshDoneUI();
+        if (announce) {
+          var days = (st.summary || []).map(function (s) { return s.site + " " + s.days + "일"; }).join(" · ");
+          toast(st.ok ? "새로고침 완료 — " + days : (st.message || "새로고침 완료"));
+        }
+        load();
+      }).catch(function () { /* 잠깐 실패는 무시하고 계속 폴링 */ });
+    }, 3000);
+  }
+  refreshBtn.onclick = function () {
+    refreshBusyUI();
     api("POST", "/api/refresh").then(function (r) {
-      var days = (r.summary || []).map(function (s) { return s.site + " " + s.days + "일"; }).join(" · ");
-      toast(r.ok ? "새로고침 완료 — " + days : (r.message || "새로고침 실패"));
-      return load();
-    }).catch(function (err) { toast("새로고침 실패: " + err.message); })
-      .finally(finish);
+      if (r && r.started === false && !r.running) { refreshDoneUI(); toast("시작 실패"); return; }
+      toast("새로고침 시작 — 완료되면 자동 반영됩니다");
+      watchRefresh(true);
+    }).catch(function (err) { refreshDoneUI(); toast("새로고침 실패: " + err.message); });
   };
+  // 페이지 로드 시 이미 돌고 있으면 이어서 표시
+  api("GET", "/api/refresh/status").then(function (st) { if (st && st.running) watchRefresh(true); }).catch(function () {});
 
   // ---------- overlay ----------
   var scrim = null;

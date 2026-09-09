@@ -132,8 +132,14 @@ class LocalServer(private val ctx: Context, port: Int) : NanoHTTPD("127.0.0.1", 
             }
         }
 
+        if (uri == "/api/refresh/status" && method == Method.GET) {
+            return json(200, RefreshService.state)
+        }
         if (uri == "/api/refresh" && method == Method.POST) {
-            return json(200, Scrape.refreshAll(ctx, store))
+            // 포그라운드 서비스로 실행 → 화면 나가도 계속 진행
+            if (RefreshService.running) return json(200, JSONObject().put("started", false).put("running", true))
+            RefreshService.start(ctx)
+            return json(200, JSONObject().put("started", true))
         }
         if (uri == "/api/tide/refresh" && method == Method.POST) {
             return json(200, JSONObject().put("ok", false)
