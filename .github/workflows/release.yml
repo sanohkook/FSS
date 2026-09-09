@@ -47,7 +47,20 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease -x lintVitalRelease --no-daemon --stacktrace
+          set -o pipefail
+          ./gradlew :app:assembleRelease -x lintVitalRelease --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+
+      - name: Dump error on failure
+        if: failure()
+        run: |
+          {
+            echo '## Gradle build failed — last 200 lines'
+            echo '```'
+            tail -n 200 /tmp/build.log 2>/dev/null || echo "(no build.log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "=================== BUILD LOG TAIL ==================="
+          tail -n 200 /tmp/build.log 2>/dev/null || true
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
