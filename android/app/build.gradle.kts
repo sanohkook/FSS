@@ -20,7 +20,7 @@ android {
         applicationId = "kr.co.fss.yeyak"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
+        versionCode = 13
         versionName = "2.10"
     }
 
