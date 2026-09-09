@@ -85,6 +85,9 @@ object Scrape {
             for (mm in XE_BOAT.findAll(seg)) {
                 val name = Http.stripTags(mm.groupValues[1]).replace(Regex("\\s+"), " ").trim()
                 if (name.isEmpty()) continue
+                // 공지사항/안내 행: admin-right div 가 비어 있음 → 배 아님
+                if (!Regex("<img\\b", RegexOption.IGNORE_CASE).containsMatchIn(mm.groupValues[5])) continue
+                if (Regex("공지|안내사항|입금계좌|예약규정").containsMatchIn(name)) continue
                 val between = mm.groupValues[2]
                 val uid = mm.groupValues[4]
                 val (status, remain, total) = xeClassify(mm.groupValues[5])

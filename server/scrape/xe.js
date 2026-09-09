@@ -33,6 +33,9 @@ function parseSections(html, origin, modDir, acc) {
     while ((m = BOAT_RE.exec(seg))) {
       const name = stripTags(m[1]).replace(/\s+/g, " ").trim();
       if (!name) continue;
+      // 공지사항/안내 행: admin-right div 가 비어 있음(예약 위젯 없음) → 배 아님
+      if (!/<img\b/i.test(m[5])) continue;
+      if (/공지|안내사항|입금계좌|예약규정/.test(name)) continue;
       const between = m[2];
       const uid = m[4];
       const info = classify(m[5]);

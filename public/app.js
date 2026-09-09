@@ -45,7 +45,7 @@
   function api(method, path, body) {
     return fetch(path, {
       method: method,
-      headers: body ? { "content-type": "application/json" } : undefined,
+      headers: body ? { "content-type": "application/json; charset=utf-8" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
     }).then(function (r) {
       if (!r.ok) return r.json().then(function (e) { throw new Error(e.error || r.status); });

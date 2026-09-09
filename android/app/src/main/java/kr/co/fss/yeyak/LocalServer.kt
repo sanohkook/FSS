@@ -4,6 +4,7 @@ import android.content.Context
 import fi.iki.elonen.NanoHTTPD
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.net.URL
 
 /**
@@ -52,14 +53,23 @@ class LocalServer(private val ctx: Context, port: Int) : NanoHTTPD("127.0.0.1", 
 
     // ---------- API ----------
     private fun body(session: IHTTPSession, cached: MutableMap<String, String>): JSONObject {
-        val b = cached["postData"] ?: return JSONObject()
-        return if (b.isBlank()) JSONObject() else JSONObject(b)
+        // NanoHTTPD: POST 본문 → "postData"(문자열), PUT 본문 → "content"(임시 파일 경로).
+        val raw = cached["postData"]
+            ?: cached["content"]?.let { runCatching { File(it).readText(Charsets.UTF_8) }.getOrNull() }
+            ?: return JSONObject()
+        return if (raw.isBlank()) JSONObject() else runCatching { JSONObject(raw) }.getOrDefault(JSONObject())
     }
 
     private fun api(session: IHTTPSession, uri: String): Response {
         val method = session.method
         val bm = HashMap<String, String>()
         if (method == Method.POST || method == Method.PUT) {
+            // NanoHTTPD 는 charset 미지정 시 본문을 US-ASCII 로 디코드 → 한글 손실.
+            // charset 이 없으면 헤더에 UTF-8 을 박아 parseBody 가 UTF-8 로 읽게 한다.
+            val ct = session.headers["content-type"]
+            if (ct != null && !ct.contains("charset", ignoreCase = true)) {
+                session.headers["content-type"] = "$ct; charset=UTF-8"
+            }
             runCatching { session.parseBody(bm) }
         }
         val parts = uri.trim('/').split('/') // ["api","board"] ...
