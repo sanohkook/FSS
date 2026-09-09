@@ -35,6 +35,7 @@
   <div class="wrap">
     <div class="controls">
       <span id="filterbar" aria-label="검색 조건"></span>
+      <label class="frz-toggle"><input type="checkbox" id="freezeChk" /> 틀고정</label>
       <details class="legendbox">
         <summary aria-label="범례">ⓘ</summary>
         <div class="legend">
@@ -46,11 +47,6 @@
       </details>
     </div>
 
-    <div class="hscroll" id="hscroll" hidden>
-      <span class="hint" id="hscrollHint"></span>
-      <button id="hLeft" aria-label="왼쪽으로">‹ 이전 배</button>
-      <button id="hRight" aria-label="오른쪽으로">다음 배 ›</button>
-    </div>
     <div class="tablecard">
       <div class="scroller">
         <table id="grid">

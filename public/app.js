@@ -392,7 +392,6 @@
       var sc = document.querySelector(".scroller");
       if (sc && state._boatN != null && boats.length > state._boatN) sc.scrollLeft = sc.scrollWidth;
       state._boatN = boats.length;
-      updateHScroll();
     });
 
     var upd = document.getElementById("updAge");
@@ -445,39 +444,22 @@
   });
 
 
-  // ---------- 표 좌우 스크롤 ----------
-  var hbar = document.getElementById("hscroll");
-  var hHint = document.getElementById("hscrollHint");
-  function scroller() { return document.querySelector(".scroller"); }
-  function step() {
-    var th = el.head.querySelector("th.boat-h");
-    return (th ? th.getBoundingClientRect().width : 110) * 3;
-  }
-  function updateHScroll() {
-    var sc = scroller();
-    if (!sc) return;
-    var can = sc.scrollWidth - sc.clientWidth > 4;
-    hbar.hidden = !can;
-    if (!can) return;
-    var atStart = sc.scrollLeft < 4;
-    var atEnd = sc.scrollLeft > sc.scrollWidth - sc.clientWidth - 4;
-    document.getElementById("hLeft").disabled = atStart;
-    document.getElementById("hRight").disabled = atEnd;
-    var total = (state.board.boats || []).length;
-    var vis = visibleBoats().length;
-    hHint.textContent = "배 " + vis + "칸 · 좌우로 스크롤하세요";
-  }
-  document.getElementById("hLeft").onclick = function () {
-    scroller().scrollBy({ left: -step(), behavior: "smooth" });
-  };
-  document.getElementById("hRight").onclick = function () {
-    scroller().scrollBy({ left: step(), behavior: "smooth" });
-  };
+  // ---------- 틀 고정 (날짜·물때 왼쪽 열 + 선박명 머리글 고정) ----------
   (function () {
-    var sc = scroller();
-    if (sc) sc.addEventListener("scroll", updateHScroll, { passive: true });
+    var chk = document.getElementById("freezeChk");
+    if (!chk) return;
+    var on = true;
+    try { on = localStorage.getItem("ijb.freeze") !== "0"; } catch (e) {}
+    var apply = function () {
+      document.querySelector(".tablecard").classList.toggle("frz", chk.checked);
+    };
+    chk.checked = on;
+    apply();
+    chk.onchange = function () {
+      try { localStorage.setItem("ijb.freeze", chk.checked ? "1" : "0"); } catch (e) {}
+      apply();
+    };
   })();
-  window.addEventListener("resize", updateHScroll);
 
   // ---------- refresh ----------
   document.getElementById("refreshBtn").onclick = function () {
