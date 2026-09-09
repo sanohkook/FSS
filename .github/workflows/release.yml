@@ -35,13 +35,15 @@ jobs:
 
       - name: Restore signing key
         run: |
-          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > android/fss-release.jks
-          cat > android/keystore.properties <<EOF
-          storeFile=fss-release.jks
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
+          printf '%s' "${{ secrets.KEYSTORE_B64 }}" | tr -d ' \n\r\t' | base64 -d > android/fss-release.jks
+          printf 'storeFile=fss-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "${{ secrets.KEYSTORE_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" "${{ secrets.KEY_PASSWORD }}" \
+            > android/keystore.properties
+          echo "keystore bytes: $(wc -c < android/fss-release.jks)"
+          keytool -list -keystore android/fss-release.jks \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" >/dev/null \
+            && echo "✅ keystore OK" \
+            || { echo "❌ KEYSTORE_B64 시크릿이 손상됨 — 값을 다시 등록하세요 (아래 안내)"; exit 1; }
 
       - name: Build signed APK
         working-directory: android
