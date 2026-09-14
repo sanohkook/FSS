@@ -745,4 +745,141 @@
   load().catch(function (e) {
     el.body.innerHTML = '<tr><td class="empty">불러오기 실패: ' + esc(e.message) + "</td></tr>";
   });
+
+  // ---------- 탭 전환 ----------
+  (function () {
+    var views = { board: document.getElementById("view-board"), loc: document.getElementById("view-loc") };
+    var boardActions = document.querySelector(".head-inner .actions");
+    var btns = document.querySelectorAll(".tab-btn");
+    btns.forEach(function (b) {
+      b.onclick = function () {
+        btns.forEach(function (x) { x.classList.toggle("active", x === b); });
+        Object.keys(views).forEach(function (k) { views[k].hidden = k !== b.dataset.tab; });
+        // 예약현황 전용 헤더 버튼(나의 예약·사이트 추가·Refresh 등)은 예약현황 탭에서만 표시
+        boardActions.hidden = b.dataset.tab !== "board";
+        el.mLabel.hidden = b.dataset.tab !== "board";
+        if (b.dataset.tab === "loc") loc.onShow();
+      };
+    });
+  })();
+
+  // ---------- "내 위치" 탭: 지도·역지오코딩·물때·포인트 저장 ----------
+  var loc = (function () {
+    var shown = false;
+    var cur = { lat: null, lng: null };
+    var map = null, marker = null, geocoder = null;
+    var nameEl = document.getElementById("locName");
+    var coordEl = document.getElementById("locCoord");
+    var tideEl = document.getElementById("locTide");
+    var pointsEl = document.getElementById("locPoints");
+    var saveBtn = document.getElementById("locSaveBtn");
+    var refreshBtn = document.getElementById("locRefreshBtn");
+
+    function loadKakaoSdk() {
+      if (window.kakao && window.kakao.maps) return Promise.resolve();
+      return new Promise(function (resolve, reject) {
+        var key = window.KAKAO_JS_KEY || "";
+        if (!key || key.indexOf("REPLACE_WITH") === 0) { reject(new Error("카카오 JS 키가 설정되지 않았습니다")); return; }
+        var s = document.createElement("script");
+        s.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=" + encodeURIComponent(key) + "&autoload=false&libraries=services";
+        s.onload = function () { window.kakao.maps.load(resolve); };
+        s.onerror = function () { console.error("kakao sdk load failed:", s.src); reject(new Error("지도 스크립트 로드 실패")); };
+        document.head.appendChild(s);
+      });
+    }
+
+    function ensureMap(lat, lng) {
+      var center = new kakao.maps.LatLng(lat, lng);
+      if (!map) {
+        map = new kakao.maps.Map(document.getElementById("locMap"), { center: center, level: 4 });
+        geocoder = new kakao.maps.services.Geocoder();
+        marker = new kakao.maps.Marker({ position: center, map: map });
+      } else {
+        map.setCenter(center);
+        marker.setPosition(center);
+      }
+    }
+
+    function reverseGeocode(lat, lng) {
+      geocoder.coord2RegionCode(lng, lat, function (result, status) {
+        if (status !== kakao.maps.services.Status.OK || !result.length) {
+          nameEl.textContent = "지명 정보 없음 (바다 위 좌표일 수 있음)";
+          return;
+        }
+        var r = result.filter(function (x) { return x.region_type === "B"; })[0] || result[0];
+        var name = [r.region_1depth_name, r.region_2depth_name, r.region_3depth_name].filter(Boolean).join(" ");
+        nameEl.textContent = name || "지명 정보 없음";
+      });
+    }
+
+    function loadTideToday() {
+      api("GET", "/api/tide/today").then(function (t) {
+        if (!t || !t.mul) { tideEl.textContent = "물때 정보 없음"; return; }
+        tideEl.textContent = t.date + "(" + t.weekday + ") " + t.mul +
+          (t.flowLabel ? " · 조류 " + t.flowLabel : "") + " — 인천 기준 물때";
+      }).catch(function () { tideEl.textContent = ""; });
+    }
+
+    function locate() {
+      if (!navigator.geolocation) { nameEl.textContent = "이 기기는 위치 확인을 지원하지 않습니다"; return; }
+      nameEl.textContent = "위치 확인 중…";
+      coordEl.textContent = "";
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        cur.lat = pos.coords.latitude;
+        cur.lng = pos.coords.longitude;
+        coordEl.textContent = cur.lat.toFixed(5) + ", " + cur.lng.toFixed(5) +
+          " (오차 ±" + Math.round(pos.coords.accuracy) + "m)";
+        loadKakaoSdk().then(function () {
+          ensureMap(cur.lat, cur.lng);
+          reverseGeocode(cur.lat, cur.lng);
+        }).catch(function (e) { nameEl.textContent = e.message; });
+      }, function (err) {
+        nameEl.textContent = "위치 확인 실패: " + (err.message || err.code);
+      }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+    }
+
+    function renderPoints(list) {
+      if (!list || !list.length) { pointsEl.innerHTML = '<li class="loc-empty">저장한 위치가 없습니다</li>'; return; }
+      pointsEl.innerHTML = list.slice().reverse().map(function (p) {
+        return '<li class="loc-point">' +
+          '<button class="loc-point-go" data-lat="' + p.lat + '" data-lng="' + p.lng + '">' + esc(p.name || "이름 없음") + "</button>" +
+          '<span class="loc-point-coord">' + Number(p.lat).toFixed(4) + ", " + Number(p.lng).toFixed(4) + "</span>" +
+          '<button class="icon-btn loc-point-del" data-id="' + esc(p.id) + '" aria-label="삭제">✕</button>' +
+          "</li>";
+      }).join("");
+    }
+
+    function loadPoints() { return api("GET", "/api/points").then(renderPoints); }
+
+    pointsEl.addEventListener("click", function (e) {
+      var go = e.target.closest(".loc-point-go");
+      if (go) {
+        loadKakaoSdk().then(function () { ensureMap(+go.dataset.lat, +go.dataset.lng); });
+        return;
+      }
+      var del = e.target.closest(".loc-point-del");
+      if (del) {
+        api("DELETE", "/api/points/" + encodeURIComponent(del.dataset.id)).then(renderPoints)
+          .catch(function (e2) { toast("삭제 실패: " + e2.message); });
+      }
+    });
+
+    saveBtn.onclick = function () {
+      if (cur.lat == null) { toast("먼저 위치를 확인하세요"); return; }
+      api("POST", "/api/points", { name: nameEl.textContent, lat: cur.lat, lng: cur.lng })
+        .then(function (list) { renderPoints(list); toast("저장했습니다"); })
+        .catch(function (e) { toast("저장 실패: " + e.message); });
+    };
+    refreshBtn.onclick = function () { locate(); loadTideToday(); };
+
+    return {
+      onShow: function () {
+        if (shown) return;
+        shown = true;
+        loadPoints();
+        locate();
+        loadTideToday();
+      },
+    };
+  })();
 })();

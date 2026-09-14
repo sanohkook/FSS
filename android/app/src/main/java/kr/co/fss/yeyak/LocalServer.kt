@@ -145,6 +145,37 @@ class LocalServer(private val ctx: Context, port: Int) : NanoHTTPD("127.0.0.1", 
             return json(200, JSONObject().put("ok", false)
                 .put("message", "이 앱은 번들 물때 데이터(2026–2027)를 사용합니다."))
         }
+        if (uri == "/api/tide/today" && method == Method.GET) {
+            return json(200, Tide.row(Tide.load(ctx), todayIso()))
+        }
+
+        if (uri == "/api/points") {
+            if (method == Method.GET) return json(200, store.points())
+            if (method == Method.POST) {
+                val b = body(session, bm)
+                if (!b.has("lat") || !b.has("lng")) return json(400, JSONObject().put("error", "lat, lng 필요"))
+                val id = "p" + System.currentTimeMillis().toString(36)
+                val point = JSONObject().put("id", id)
+                    .put("name", b.optString("name").ifEmpty { "이름 없음" })
+                    .put("lat", b.getDouble("lat")).put("lng", b.getDouble("lng"))
+                    .put("note", b.optString("note")).put("savedAt", nowIso())
+                val points = store.points()
+                points.put(point)
+                store.savePoints(points)
+                return json(200, points)
+            }
+        }
+        if (parts.size == 3 && parts[1] == "points" && method == Method.DELETE) {
+            val id = parts[2]
+            val points = store.points()
+            val next = JSONArray()
+            for (i in 0 until points.length()) {
+                val p = points.getJSONObject(i)
+                if (p.optString("id") != id) next.put(p)
+            }
+            store.savePoints(next)
+            return json(200, next)
+        }
 
         if (uri == "/api/myplan") {
             if (method == Method.GET) return json(200, store.myplan())
@@ -226,6 +257,11 @@ class LocalServer(private val ctx: Context, port: Int) : NanoHTTPD("127.0.0.1", 
         val f = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
         f.timeZone = java.util.TimeZone.getTimeZone("UTC")
         return f.format(java.util.Date())
+    }
+
+    private fun todayIso(): String {
+        val c = java.util.Calendar.getInstance()
+        return "%04d-%02d-%02d".format(c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH) + 1, c.get(java.util.Calendar.DAY_OF_MONTH))
     }
 
     private fun json(code: Int, o: Any): Response {

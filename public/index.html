@@ -9,30 +9,41 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" />
   <link rel="stylesheet" href="/styles.css" />
+  <script>
+    // 카카오 디벨로퍼스 "FSS" 앱의 JavaScript 키. 플랫폼 키 > JavaScript 키 카드에서 확인/재발급 가능.
+    // 앱 키 > JavaScript 키 카드 클릭 > "JavaScript SDK 도메인"에 "http://127.0.0.1:8765" 등록 필요.
+    window.KAKAO_JS_KEY = "97fbc5805befaea3a3e5b7e65f78519e";
+  </script>
 </head>
 <body>
-  <header>
-    <div class="head-inner">
-      <div class="brand">
-        <h1><span class="tick" aria-hidden="true">◧</span>예약현황</h1>
-        <p>인천 앞바다 배낚시 · 물때·조류 <a href="https://www.khoa.go.kr/" target="_blank" rel="noopener">국립해양조사원</a> 조석예보</p>
+  <div class="topbar">
+    <nav class="tabbar" id="tabbar">
+      <button class="tab-btn active" data-tab="board" type="button">예약현황</button>
+      <button class="tab-btn" data-tab="loc" type="button">내 위치</button>
+    </nav>
+    <header>
+      <div class="head-inner">
+        <div class="brand">
+          <h1><span class="tick" aria-hidden="true">◧</span>예약현황</h1>
+          <p>인천 앞바다 배낚시 · 물때·조류 <a href="https://www.khoa.go.kr/" target="_blank" rel="noopener">국립해양조사원</a> 조석예보</p>
+        </div>
+        <span class="label" id="mLabel"></span>
+        <div class="actions">
+          <button class="icon-btn" id="themeBtn" aria-label="테마 전환">◐</button>
+          <button id="planBtn" class="badge">나의 예약 <span class="n" id="planCount">0</span></button>
+          <button id="settingsBtn">사이트 추가</button>
+          <span id="upgradeWrap" class="upg" hidden>
+            <button id="upgradeBtn">업그레이드</button>
+            <button id="upgradeClose" class="icon-btn" aria-label="업그레이드 알림 닫기">✕</button>
+          </span>
+          <button class="btn-primary" id="refreshBtn">Refresh</button>
+          <span class="upd" id="updAge" title="예약 현황 마지막 갱신"></span>
+        </div>
       </div>
-      <span class="label" id="mLabel"></span>
-      <div class="actions">
-        <button class="icon-btn" id="themeBtn" aria-label="테마 전환">◐</button>
-        <button id="planBtn" class="badge">나의 예약 <span class="n" id="planCount">0</span></button>
-        <button id="settingsBtn">사이트 추가</button>
-        <span id="upgradeWrap" class="upg" hidden>
-          <button id="upgradeBtn">업그레이드</button>
-          <button id="upgradeClose" class="icon-btn" aria-label="업그레이드 알림 닫기">✕</button>
-        </span>
-        <button class="btn-primary" id="refreshBtn">Refresh</button>
-        <span class="upd" id="updAge" title="예약 현황 마지막 갱신"></span>
-      </div>
-    </div>
-  </header>
+    </header>
+  </div>
 
-  <div class="wrap">
+  <div class="wrap view" id="view-board">
     <div class="controls">
       <span id="filterbar" aria-label="검색 조건"></span>
       <label class="frz-toggle"><input type="checkbox" id="freezeChk" /> 틀고정</label>
@@ -57,6 +68,20 @@
       </div>
     </div>
     <p class="foot-note" id="footNote"></p>
+  </div>
+
+  <div class="wrap view" id="view-loc" hidden>
+    <div class="loc-panel">
+      <div id="locMap" class="loc-map" aria-label="지도"></div>
+      <div class="loc-info">
+        <p class="loc-name" id="locName">위치 확인 전</p>
+        <p class="loc-coord mono" id="locCoord"></p>
+        <p class="loc-tide" id="locTide"></p>
+        <button class="btn-primary" id="locSaveBtn">이 위치 저장</button>
+        <button class="icon-btn" id="locRefreshBtn" aria-label="위치 새로고침">⟳</button>
+      </div>
+      <ul class="loc-points" id="locPoints"></ul>
+    </div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

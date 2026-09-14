@@ -43,6 +43,10 @@ class Store(private val ctx: Context) {
     fun myplan(): JSONArray = readText("myplan.json")?.let { JSONArray(it) } ?: JSONArray()
     fun saveMyplan(a: JSONArray) = writeText("myplan.json", a.toString(2))
 
+    /** "내 위치" 탭에서 저장한 지점(섬/갯바위 등) 목록 */
+    fun points(): JSONArray = readText("points.json")?.let { JSONArray(it) } ?: JSONArray()
+    fun savePoints(a: JSONArray) = writeText("points.json", a.toString(2))
+
     companion object {
         val DEFAULT_SITES: JSONArray = JSONArray(
             """

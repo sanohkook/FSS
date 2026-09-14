@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -32,6 +33,10 @@ class MainActivity : Activity() {
     private var server: LocalServer? = null
     private val port = 8765
     private val base get() = "http://127.0.0.1:$port"
+
+    // "내 위치" 탭의 navigator.geolocation 요청 → 런타임 권한 결과가 오면 WebView 콜백에 전달
+    private var pendingGeoOrigin: String? = null
+    private var pendingGeoCallback: GeolocationPermissions.Callback? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,6 +83,7 @@ class MainActivity : Activity() {
             setSupportZoom(false)
             textZoom = 100
             cacheMode = WebSettings.LOAD_NO_CACHE
+            setGeolocationEnabled(true)
         }
         web.addJavascriptInterface(Bridge(), "FssNative")
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
@@ -88,6 +94,35 @@ class MainActivity : Activity() {
             override fun onProgressChanged(v: WebView?, p: Int) {
                 bar.progress = p
                 bar.visibility = if (p in 1..99) View.VISIBLE else View.GONE
+            }
+
+            override fun onConsoleMessage(cm: android.webkit.ConsoleMessage): Boolean {
+                Log.d("fss-console", "${cm.message()} [${cm.sourceId()}:${cm.lineNumber()}]")
+                return true
+            }
+
+            // "내 위치" 탭에서 navigator.geolocation 호출 시 호출됨 — Android 런타임 권한과 연동
+            override fun onGeolocationPermissionsShowPrompt(
+                origin: String?,
+                callback: GeolocationPermissions.Callback?
+            ) {
+                val granted = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED
+                if (granted) {
+                    callback?.invoke(origin, true, false)
+                } else {
+                    pendingGeoOrigin = origin
+                    pendingGeoCallback = callback
+                    runCatching {
+                        requestPermissions(
+                            arrayOf(
+                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                            ),
+                            8
+                        )
+                    }.onFailure { callback?.invoke(origin, false, false) }
+                }
             }
         }
         web.webViewClient = object : WebViewClient() {
@@ -122,6 +157,20 @@ class MainActivity : Activity() {
             val changed = runCatching { RemoteSync.pull(Store(applicationContext)) }.getOrDefault(false)
             if (changed) runOnUiThread { web.reload() }
         }.start()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 8) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            pendingGeoCallback?.invoke(pendingGeoOrigin, granted, false)
+            pendingGeoOrigin = null
+            pendingGeoCallback = null
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
