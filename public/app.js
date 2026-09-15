@@ -768,6 +768,8 @@
     var shown = false;
     var cur = { lat: null, lng: null };
     var map = null, marker = null, geocoder = null;
+    var pointOverlays = [];
+    var savedPoints = [];
     var nameEl = document.getElementById("locName");
     var coordEl = document.getElementById("locCoord");
     var tideEl = document.getElementById("locTide");
@@ -794,10 +796,28 @@
         map = new kakao.maps.Map(document.getElementById("locMap"), { center: center, level: 4 });
         geocoder = new kakao.maps.services.Geocoder();
         marker = new kakao.maps.Marker({ position: center, map: map });
+        plotSavedPoints();
       } else {
         map.setCenter(center);
         marker.setPosition(center);
       }
+    }
+
+    function plotSavedPoints() {
+      if (!map) return;
+      pointOverlays.forEach(function (o) { o.setMap(null); });
+      pointOverlays = savedPoints.map(function (p) {
+        var pin = document.createElement("div");
+        pin.className = "loc-map-pin";
+        pin.title = p.name || "이름 없음";
+        var overlay = new kakao.maps.CustomOverlay({
+          position: new kakao.maps.LatLng(p.lat, p.lng),
+          content: pin,
+          yAnchor: 1,
+        });
+        overlay.setMap(map);
+        return overlay;
+      });
     }
 
     function reverseGeocode(lat, lng) {
@@ -839,8 +859,10 @@
     }
 
     function renderPoints(list) {
-      if (!list || !list.length) { pointsEl.innerHTML = '<li class="loc-empty">저장한 위치가 없습니다</li>'; return; }
-      pointsEl.innerHTML = list.slice().reverse().map(function (p) {
+      savedPoints = list || [];
+      plotSavedPoints();
+      if (!savedPoints.length) { pointsEl.innerHTML = '<li class="loc-empty">저장한 위치가 없습니다</li>'; return; }
+      pointsEl.innerHTML = savedPoints.slice().reverse().map(function (p) {
         return '<li class="loc-point">' +
           '<button class="loc-point-go" data-lat="' + p.lat + '" data-lng="' + p.lng + '">' + esc(p.name || "이름 없음") + "</button>" +
           '<span class="loc-point-coord">' + Number(p.lat).toFixed(4) + ", " + Number(p.lng).toFixed(4) + "</span>" +
@@ -871,6 +893,43 @@
         .catch(function (e) { toast("저장 실패: " + e.message); });
     };
     refreshBtn.onclick = function () { locate(); loadTideToday(); };
+
+    // ---------- 저장 위치 내보내기/가져오기 (기기 변경·백업용, "나의 예약" 방식과 동일) ----------
+    function pointsIO(mode) {
+      var isExp = mode === "export";
+      var p = document.createElement("div");
+      p.className = "panel modal";
+      var text = isExp ? JSON.stringify(savedPoints) : "";
+      p.innerHTML =
+        '<div class="panel-head"><h2>' + (isExp ? "저장 위치 내보내기" : "저장 위치 가져오기") + '</h2><button class="icon-btn" data-close>✕</button></div>' +
+        '<div class="panel-body"><p class="hint">' +
+        (isExp ? "아래 내용을 복사해 메모 등에 보관하세요." : "내보내기 한 내용을 붙여넣고 적용하세요. (기존 목록은 대체됩니다)") +
+        '</p><textarea id="pointsText" class="mono"' + (isExp ? " readonly" : "") + ' rows="7">' + esc(text) + "</textarea>" +
+        '<div class="row" style="margin-top:10px">' +
+        (isExp ? '<button class="btn-primary" id="pointsCopy">복사</button>'
+               : '<button class="btn-primary" id="pointsApply">적용</button>') +
+        "</div></div>";
+      openOverlay("center", p);
+      p.querySelector("[data-close]").onclick = closeOverlay;
+      if (isExp) {
+        p.querySelector("#pointsCopy").onclick = function () {
+          var ta = p.querySelector("#pointsText"); ta.select();
+          try { document.execCommand("copy"); toast("복사됨"); } catch (e) { toast("직접 선택해 복사하세요"); }
+        };
+      } else {
+        p.querySelector("#pointsApply").onclick = function () {
+          var raw = p.querySelector("#pointsText").value.trim();
+          var arr;
+          try { arr = JSON.parse(raw); if (!Array.isArray(arr)) throw 0; }
+          catch (e) { toast("형식이 올바르지 않습니다"); return; }
+          api("PUT", "/api/points", { list: arr }).then(function (list) {
+            renderPoints(list); toast("가져왔습니다 (" + list.length + "건)"); closeOverlay();
+          }).catch(function (err) { toast("실패: " + err.message); });
+        };
+      }
+    }
+    document.getElementById("locExportBtn").onclick = function () { pointsIO("export"); };
+    document.getElementById("locImportBtn").onclick = function () { pointsIO("import"); };
 
     return {
       onShow: function () {

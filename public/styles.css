@@ -99,6 +99,9 @@ header {
 .loc-name { margin: 0; font-weight: 600; flex: 1 1 100%; }
 .loc-coord { margin: 0; font-size: 12.5px; color: var(--ink-2); }
 .loc-tide { margin: 0; font-size: 12.5px; color: var(--ink-2); flex: 1 1 auto; }
+.loc-points-head { display: flex; align-items: center; gap: 10px; }
+.loc-points-title { font-weight: 600; margin-right: auto; }
+.loc-points-head button { font-size: 12px; padding: 5px 10px; }
 .loc-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .loc-point {
   display: flex; align-items: center; gap: 8px; background: var(--surface);
@@ -110,6 +113,11 @@ header {
 .loc-point-del { color: var(--ink-3); }
 .loc-point-del:hover { color: var(--full); border-color: var(--full); }
 .loc-empty { color: var(--ink-3); font-size: 13px; padding: 8px 2px; }
+.loc-map-pin {
+  width: 14px; height: 14px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--few, #e08600); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  cursor: pointer;
+}
 .head-inner {
   max-width: 1240px; margin: 0 auto; padding: 12px 16px;
   display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap;

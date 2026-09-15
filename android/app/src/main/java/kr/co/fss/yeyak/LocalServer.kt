@@ -151,6 +151,22 @@ class LocalServer(private val ctx: Context, port: Int) : NanoHTTPD("127.0.0.1", 
 
         if (uri == "/api/points") {
             if (method == Method.GET) return json(200, store.points())
+            if (method == Method.PUT) {
+                // 전체 교체 (가져오기)
+                val arr = body(session, bm).optJSONArray("list") ?: return json(400, JSONObject().put("error", "list 배열 필요"))
+                val clean = JSONArray()
+                for (i in 0 until arr.length()) {
+                    val x = arr.optJSONObject(i) ?: continue
+                    if (!x.has("lat") || !x.has("lng")) continue
+                    val id = x.optString("id").ifEmpty { "p" + System.currentTimeMillis().toString(36) + i }
+                    clean.put(JSONObject().put("id", id)
+                        .put("name", x.optString("name").ifEmpty { "이름 없음" })
+                        .put("lat", x.getDouble("lat")).put("lng", x.getDouble("lng"))
+                        .put("note", x.optString("note")).put("savedAt", x.optString("savedAt").ifEmpty { nowIso() }))
+                }
+                store.savePoints(clean)
+                return json(200, clean)
+            }
             if (method == Method.POST) {
                 val b = body(session, bm)
                 if (!b.has("lat") || !b.has("lng")) return json(400, JSONObject().put("error", "lat, lng 필요"))
